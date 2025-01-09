@@ -438,6 +438,7 @@ watch([
 	showDoReactionButtonInNoteFooter,
 	showQuoteButtonInNoteFooter,
 	showMoreButtonInNoteFooter,
+  useSearchConversionSyntax,
 ], () => {
 	reloadTimeline();
 	reloadNotification();

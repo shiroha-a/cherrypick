@@ -7,7 +7,9 @@ defaultStore.reactiveState.useSearchConversionSyntax = {
 
 export function convertSearchSyntax(text: string | null): string | null {
 
-  if (!text || !defaultStore.state.useSearchConversionSyntax) {
+  const isEnabled = defaultStore.state.useSearchConversionSyntax;
+
+  if (!text || !isEnabled) {
     return text;
   }
 
