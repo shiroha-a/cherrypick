@@ -283,6 +283,7 @@ import { notePage } from '@/filters/note.js';
 import { miLocalStorage } from '@/local-storage.js';
 import { vibrate } from '@/scripts/vibrate.js';
 import detectLanguage from '@/scripts/detect-language.js';
+import { convertSearchSyntax } from '@/scripts/shiroha/ShiSearchConverter';
 
 const showEl = ref(false);
 
@@ -345,7 +346,12 @@ const appearNote = computed(() => getAppearNote(note.value));
 const galleryEl = shallowRef<InstanceType<typeof MkMediaList>>();
 const isMyRenote = $i && ($i.id === note.value.userId);
 const showContent = ref(false);
-const parsed = computed(() => appearNote.value.text ? mfm.parse(appearNote.value.text) : null);
+
+const parsed = computed(() => {
+  if (!appearNote.value.text) return null;
+  const convertedText = convertSearchSyntax(appearNote.value.text);
+  return mfm.parse(convertedText);
+});
 const urls = computed(() => parsed.value ? extractUrlFromMfm(parsed.value).filter((url) => appearNote.value.renote?.url !== url && appearNote.value.renote?.uri !== url) : null);
 const isLong = shouldCollapsed(appearNote.value, urls.value ?? []);
 const isMFM = shouldMfmCollapsed(appearNote.value);

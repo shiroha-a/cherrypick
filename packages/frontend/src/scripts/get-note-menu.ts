@@ -288,10 +288,20 @@ export function getNoteMenu(props: {
 		});
 	}
 
-	function copyContent(): void {
-		copyToClipboard(appearNote.text);
-		os.toast(i18n.ts.copiedContent, 'copied');
-	}
+	async function copyContent(): Promise<void> {
+    if (!appearNote.text) return;
+
+    try {
+        await copyToClipboard(appearNote.text);
+        os.toast(i18n.ts.copiedContent, 'copied');
+    } catch (e) {
+        console.error('Failed to copy content:', e);
+        os.alert({
+            type: 'error',
+            text: i18n.ts.copyFailed,
+        });
+    }
+}
 
 	function copyLink(): void {
 		copyToClipboard(`${url}/notes/${appearNote.id}`);

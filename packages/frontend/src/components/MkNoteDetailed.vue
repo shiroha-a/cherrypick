@@ -356,6 +356,7 @@ import MkPostForm from '@/components/MkPostFormSimple.vue';
 import { deviceKind } from '@/scripts/device-kind.js';
 import { vibrate } from '@/scripts/vibrate.js';
 import detectLanguage from '@/scripts/detect-language.js';
+import { convertSearchSyntax } from '@/scripts/shiroha/ShiSearchConverter';
 
 const MOBILE_THRESHOLD = 500;
 const isMobile = ref(deviceKind === 'smartphone' || window.innerWidth <= MOBILE_THRESHOLD);
@@ -413,7 +414,11 @@ const translation = ref<Misskey.entities.NotesTranslateResponse | null>(null);
 const translating = ref(false);
 const viewTextSource = ref(false);
 const noNyaize = ref(false);
-const parsed = appearNote.value.text ? mfm.parse(appearNote.value.text) : null;
+const parsed = computed(() => {
+  if (!appearNote.value.text) return null;
+  const convertedText = convertSearchSyntax(appearNote.value.text);
+  return mfm.parse(convertedText);
+});
 const urls = parsed ? extractUrlFromMfm(parsed).filter((url) => appearNote.value.renote?.url !== url && appearNote.value.renote?.uri !== url) : null;
 const showTicker = (defaultStore.state.instanceTicker === 'always') || (defaultStore.state.instanceTicker === 'remote' && appearNote.value.user.instance);
 const conversation = ref<Misskey.entities.Note[]>([]);
