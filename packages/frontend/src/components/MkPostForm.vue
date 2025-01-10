@@ -1580,7 +1580,7 @@ html[data-color-scheme=light] .preview {
 	max-width: 100%;
 	min-width: 100%;
 	width: 100%;
-	min-height: 140px;
+	min-height: 90px;
 	height: 100%;
 }
 
@@ -1703,7 +1703,7 @@ html[data-color-scheme=light] .preview {
 	}
 
 	.text {
-		min-height: 120px;
+		min-height: 80px;
 		padding: 0 22px;
 	}
 
