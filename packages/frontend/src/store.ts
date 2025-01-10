@@ -877,6 +877,13 @@ export const defaultStore = markRaw(new Storage('base', {
 		default: false,
 	},
 	// #endregion
+
+	// fork shiroha
+	useSearchConversionSyntax: {
+		where: 'device',
+		default: false,
+	},
+	// #endregion
 }));
 
 // TODO: 他のタブと永続化されたstateを同期

@@ -368,6 +368,7 @@ const showQuoteButtonInNoteFooter = computed(defaultStore.makeGetterSetter('show
 const showMoreButtonInNoteFooter = computed(defaultStore.makeGetterSetter('showMoreButtonInNoteFooter'));
 const selectReaction = computed(defaultStore.makeGetterSetter('selectReaction'));
 const useSearchConversionSyntax = computed(defaultStore.makeGetterSetter('useSearchConversionSyntax'));
+const storedSearchConversion = ref(miLocalStorage.getItem('useSearchConversionSyntax') === 'true');
 
 watch(fontSize, () => {
 	if (fontSize.value == null) {
@@ -438,7 +439,7 @@ watch([
 	showDoReactionButtonInNoteFooter,
 	showQuoteButtonInNoteFooter,
 	showMoreButtonInNoteFooter,
-  useSearchConversionSyntax,
+	useSearchConversionSyntax,
 ], () => {
 	reloadTimeline();
 	reloadNotification();
@@ -455,6 +456,14 @@ watch([
 	showReplyInNotification,
 ], () => {
 	reloadNotification();
+});
+
+watch(useSearchConversionSyntax, () => {
+    if (useSearchConversionSyntax.value) {
+        miLocalStorage.setItem('useSearchConversionSyntax', 'true');
+    } else {
+        miLocalStorage.removeItem('useSearchConversionSyntax');
+    }
 });
 
 let smashCount = 0;
@@ -504,6 +513,10 @@ function getHTMLElement(ev: MouseEvent): HTMLElement {
 onMounted(() => {
 	if (fontSizeBefore.value == null) {
 		fontSizeBefore.value = fontSize.value as string;
+	}
+
+	if (storedSearchConversion.value !== null) {
+        defaultStore.set('useSearchConversionSyntax', storedSearchConversion.value);
 	}
 });
 
