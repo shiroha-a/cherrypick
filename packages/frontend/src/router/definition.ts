@@ -195,7 +195,11 @@ const routes: RouteDef[] = [{
 		path: '/appearance',
 		name: 'appearance',
 		component: page(() => import('@/pages/settings/appearance.vue')),
-	}, {
+	},{
+    path: '/shiroha',
+		name: 'shiroha',
+    component: page(() => import('@/pages/settings/shiroha.vue')),
+	},{
 		path: '/',
 		component: page(() => import('@/pages/_empty_.vue')),
 	}],
