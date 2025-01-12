@@ -154,7 +154,7 @@ function stealReaction(ev: MouseEvent) {
 
         await misskeyApi('notes/reactions/create', {
           noteId: props.note.id,
-          reaction: props.reaction,
+          reaction: `:${reactionName.value}:`,
         });
       },
     }
