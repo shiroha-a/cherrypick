@@ -315,6 +315,7 @@ const canPost = computed((): boolean => {
 
 const withHashtags = computed(defaultStore.makeGetterSetter('postFormWithHashtags'));
 const hashtags = computed(defaultStore.makeGetterSetter('postFormHashtags'));
+const postAccount = ref<Misskey.entities.UserDetailed | null>(null);
 
 watch(text, () => {
 	checkMissingMention();
@@ -1041,10 +1042,11 @@ async function post(ev?: MouseEvent) {
 			text: err.message + '\n' + (err as any).id,
 		});
 	});
-	textareaEl.value.style.height = '140px';
-	if (props.updateMode) sound.playMisskeySfx('noteEdited');
-	vibrate(defaultStore.state.vibrateSystem ? [10, 20, 10, 20, 10, 20, 60] : []);
-}
+  if (textareaEl.value) {
+    const height = defaultStore.state.useClassicPostForm === true ? '90px' : '140px';
+    console.log('Resetting height to:', height); // デバッグログ
+    textareaEl.value.style.height = height;
+  }
 
 function cancel() {
 	emit('cancel');
@@ -1114,7 +1116,6 @@ async function openMfmCheatSheet() {
 	os.popup(defineAsyncComponent(() => import('@/components/MkMfmCheatSheetDialog.vue')), {}, {}, 'closed');
 }
 
-const postAccount = ref<Misskey.entities.UserDetailed | null>(null);
 
 function openAccountMenu(ev: MouseEvent) {
 	if (props.mock) return;
@@ -1207,6 +1208,7 @@ function showOtherMenu(ev: MouseEvent) {
 }
 
 onMounted(() => {
+  console.log('Current PostForm style:', defaultStore.state.useClassicPostForm);
 	if (props.autofocus) {
 		focus();
 
@@ -1308,18 +1310,24 @@ onMounted(() => {
 defineExpose({
 	clear,
 });
+
+watch(() => defaultStore.state.useClassicPostForm, (newVal) => {
+  console.log('PostForm style changed:', newVal);
+}, { immediate: true });
+}
+
 </script>
 
 <style lang="scss" module>
 .root {
-	position: relative;
-	container-type: inline-size;
-	max-width: 800px;
+  position: relative;
+  container-type: inline-size;
+  max-width: 800px;
 
-	&.modal {
-		width: 100%;
-		max-width: 640px;
-	}
+  &.modal {
+    width: 100%;
+    max-width: v-bind('defaultStore.state.useClassicPostForm ? "520px" : "640px"');
+  }
 }
 
 //#region header
@@ -1577,11 +1585,17 @@ html[data-color-scheme=light] .preview {
 }
 
 .text {
-	max-width: 100%;
-	min-width: 100%;
-	width: 100%;
-	min-height: 90px;
-	height: 100%;
+  max-width: 100%;
+  min-width: 100%;
+  width: 100%;
+  min-height: v-bind('defaultStore.state.useClassicPostForm ? "90px" : "140px"');
+  height: 100%;
+}
+
+@container (max-width: 500px) {
+  .text {
+    min-height: v-bind('defaultStore.state.useClassicPostForm ? "80px" : "120px"');
+  }
 }
 
 .textCount {
@@ -1607,19 +1621,17 @@ html[data-color-scheme=light] .preview {
 }
 
 .footerLeft {
-	flex: 1;
-	display: grid;
-	grid-auto-flow: column;
-	grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
-	grid-auto-rows: 40px;
-	overflow: scroll;
-	max-width: 85%;
-	-ms-overflow-style: none;
-	scrollbar-width: none;
+  flex: 1;
+  display: grid;
+  grid-auto-flow: v-bind('defaultStore.state.useClassicPostForm ? "row" : "column"');
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  grid-auto-rows: 40px;
 
-	.scroll::-webkit-scrollbar {
-		display: none;
-	}
+  // CherryPickスタイルの場合のみ適用
+  max-width: v-bind('defaultStore.state.useClassicPostForm ? "100%" : "85%"');
+  overflow: v-bind('defaultStore.state.useClassicPostForm ? "initial" : "scroll"');
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .footerRight {
@@ -1702,10 +1714,10 @@ html[data-color-scheme=light] .preview {
 		padding: 8px 22px;
 	}
 
-	.text {
-		min-height: 80px;
-		padding: 0 22px;
-	}
+  .text {
+    min-height: v-bind('defaultStore.state.useClassicPostForm ? "80px" : "120px"');
+    padding: 0 22px;
+  }
 
 	.footer {
 		padding: 0 8px 8px 8px;
