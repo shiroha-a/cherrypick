@@ -139,10 +139,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</MkSwitch>
 				<MkSwitch v-model="collapseLongNoteContent">{{ i18n.ts.collapseLongNoteContent }} <span class="_beta">CherryPick</span></MkSwitch>
 				<MkSwitch v-model="collapseDefault">{{ i18n.ts.collapseDefault }} <span class="_beta">CherryPick</span></MkSwitch>
-				<MkSwitch v-model="useSearchConversionSyntax">
-  			検索構文をMisskey互換で表示 <span class="_beta">Shiroha</span>
- 				<template #caption>検索文を "[検索]" の形式で表示します</template>
-				</MkSwitch>
 				<MkSwitch v-model="showNoteActionsOnlyHover">{{ i18n.ts.showNoteActionsOnlyHover }}</MkSwitch>
 				<MkSwitch v-model="showClipButtonInNoteFooter">{{ i18n.ts.showClipButtonInNoteFooter }}</MkSwitch>
 				<MkSwitch v-model="showTranslateButtonInNote">{{ i18n.ts.showTranslateButtonInNote }} <span class="_beta">CherryPick</span></MkSwitch>
@@ -367,8 +363,6 @@ const showDoReactionButtonInNoteFooter = computed(defaultStore.makeGetterSetter(
 const showQuoteButtonInNoteFooter = computed(defaultStore.makeGetterSetter('showQuoteButtonInNoteFooter'));
 const showMoreButtonInNoteFooter = computed(defaultStore.makeGetterSetter('showMoreButtonInNoteFooter'));
 const selectReaction = computed(defaultStore.makeGetterSetter('selectReaction'));
-const useSearchConversionSyntax = computed(defaultStore.makeGetterSetter('useSearchConversionSyntax'));
-const storedSearchConversion = ref(miLocalStorage.getItem('useSearchConversionSyntax') === 'true');
 
 watch(fontSize, () => {
 	if (fontSize.value == null) {
@@ -439,7 +433,6 @@ watch([
 	showDoReactionButtonInNoteFooter,
 	showQuoteButtonInNoteFooter,
 	showMoreButtonInNoteFooter,
-	useSearchConversionSyntax,
 ], () => {
 	reloadTimeline();
 	reloadNotification();
@@ -456,14 +449,6 @@ watch([
 	showReplyInNotification,
 ], () => {
 	reloadNotification();
-});
-
-watch(useSearchConversionSyntax, () => {
-    if (useSearchConversionSyntax.value) {
-        miLocalStorage.setItem('useSearchConversionSyntax', 'true');
-    } else {
-        miLocalStorage.removeItem('useSearchConversionSyntax');
-    }
 });
 
 let smashCount = 0;
@@ -513,10 +498,6 @@ function getHTMLElement(ev: MouseEvent): HTMLElement {
 onMounted(() => {
 	if (fontSizeBefore.value == null) {
 		fontSizeBefore.value = fontSize.value as string;
-	}
-
-	if (storedSearchConversion.value !== null) {
-        defaultStore.set('useSearchConversionSyntax', storedSearchConversion.value);
 	}
 });
 

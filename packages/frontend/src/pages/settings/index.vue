@@ -140,6 +140,11 @@ const menuDef = computed(() => [{
 		text: i18n.ts.plugins,
 		to: '/settings/plugin',
 		active: currentPage.value?.route.name === 'plugin',
+	}, {
+    text: 'Shiroha',
+    icon: 'ti ti-settings',
+    to: '/settings/shiroha',
+		active: currentPage.value?.route.name === 'shiroha',
 	}],
 }, {
 	title: i18n.ts.otherSettings,
