@@ -4,7 +4,9 @@
 					<template #label>Shiroha 独自機能の設定</template>
 
 					<div class="_gaps_s">
-							<MkSwitch v-model="useSearchConversionSyntax">検索MFCをMisskey互換で表示<template #caption>検索文を "[検索]" の形式で表示します</template></MkSwitch>
+							<MkSwitch v-model="useSearchConversionSyntax">検索MFCをMisskey互換で表示<span class="_beta">Shiroha</span></MkSwitch>
+							<MkSwitch v-model="useClassicPostForm">投稿フォームをMisskey仕様にする <span class="_beta">Shiroha</span>
+  			</MkSwitch>
 					</div>
 			</FormSection>
 	</div>
@@ -23,8 +25,10 @@
 
 	const useSearchConversionSyntax = computed(defaultStore.makeGetterSetter('useSearchConversionSyntax'));
 	const storedSearchConversion = ref(miLocalStorage.getItem('useSearchConversionSyntax') === 'true');
+	const useClassicPostForm = computed(defaultStore.makeGetterSetter('useClassicPostForm'));
 
 	watch([
+		useClassicPostForm,
 	], async () => {
 	await reloadAsk({ reason: i18n.ts.reloadToApplySetting, unison: true });
 });

@@ -119,10 +119,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<option value="twemoji">Twemoji</option>
 				</MkRadios>
 				<div style="margin: 8px 0 0 0; font-size: 1.5em;"><Mfm :key="emojiStyle" text="🍮🍦🍭🍩🍰🍫🍬🥞🍪"/></div>
-				<MkSwitch v-model="useClassicPostForm">
-    		投稿フォームをMisskey仕様にする <span class="_beta">Shiroha</span>
-    		<template #caption>テキストエリアの高さを90pxに変更します</template>
-  </MkSwitch>
 			</div>
 		</div>
 	</FormSection>
@@ -367,7 +363,6 @@ const showDoReactionButtonInNoteFooter = computed(defaultStore.makeGetterSetter(
 const showQuoteButtonInNoteFooter = computed(defaultStore.makeGetterSetter('showQuoteButtonInNoteFooter'));
 const showMoreButtonInNoteFooter = computed(defaultStore.makeGetterSetter('showMoreButtonInNoteFooter'));
 const selectReaction = computed(defaultStore.makeGetterSetter('selectReaction'));
-const useClassicPostForm = computed(defaultStore.makeGetterSetter('useClassicPostForm'));
 
 watch(fontSize, () => {
 	if (fontSize.value == null) {
@@ -407,7 +402,6 @@ watch([
 	showFixedPostFormInReplies,
 	showingAnimatedImages,
 	enableSeasonalScreenEffect,
-	useClassicPostForm,
 ], async () => {
 	await reloadAsk({ reason: i18n.ts.reloadToApplySetting, unison: true });
 });
