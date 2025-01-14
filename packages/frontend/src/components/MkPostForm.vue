@@ -1042,11 +1042,13 @@ async function post(ev?: MouseEvent) {
 			text: err.message + '\n' + (err as any).id,
 		});
 	});
-  if (textareaEl.value) {
+	if (textareaEl.value) {
     const height = defaultStore.state.useClassicPostForm === true ? '90px' : '140px';
-    console.log('Resetting height to:', height); // デバッグログ
     textareaEl.value.style.height = height;
   }
+  if (props.updateMode) sound.playMisskeySfx('noteEdited');
+  vibrate(defaultStore.state.vibrateSystem ? [10, 20, 10, 20, 10, 20, 60] : []);
+}
 
 function cancel() {
 	emit('cancel');
@@ -1208,7 +1210,6 @@ function showOtherMenu(ev: MouseEvent) {
 }
 
 onMounted(() => {
-  console.log('Current PostForm style:', defaultStore.state.useClassicPostForm);
 	if (props.autofocus) {
 		focus();
 
@@ -1312,9 +1313,7 @@ defineExpose({
 });
 
 watch(() => defaultStore.state.useClassicPostForm, (newVal) => {
-  console.log('PostForm style changed:', newVal);
 }, { immediate: true });
-}
 
 </script>
 
@@ -1623,26 +1622,33 @@ html[data-color-scheme=light] .preview {
 .footerLeft {
   flex: 1;
   display: grid;
-  grid-auto-flow: v-bind('defaultStore.state.useClassicPostForm ? "row" : "column"');
+  grid-auto-flow: column;
   grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
   grid-auto-rows: 40px;
 
-  // CherryPickスタイルの場合のみ適用
-  max-width: v-bind('defaultStore.state.useClassicPostForm ? "100%" : "85%"');
-  overflow: v-bind('defaultStore.state.useClassicPostForm ? "initial" : "scroll"');
+  @if (v-bind('defaultStore.state.useClassicPostForm')) {
+    width: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+  } @else {
+    max-width: 85%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
   -ms-overflow-style: none;
   scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .footerRight {
-	flex: 0;
-	margin-left: auto;
-	display: grid;
-	grid-auto-flow: row;
-	grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
-	grid-auto-rows: 40px;
-	direction: rtl;
-
+  flex: 0;
+  display: grid;
+  grid-template-columns: 42px;
+  grid-auto-rows: 40px;
+  margin-left: auto;
 }
 
 .footerButton {
