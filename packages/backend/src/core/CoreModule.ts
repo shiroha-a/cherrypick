@@ -27,6 +27,7 @@ import { CaptchaService } from './CaptchaService.js';
 import { CreateSystemUserService } from './CreateSystemUserService.js';
 import { CustomEmojiService } from './CustomEmojiService.js';
 import { DeleteAccountService } from './DeleteAccountService.js';
+import { TruncateAccountService } from './TruncateAccountService.js';
 import { DownloadService } from './DownloadService.js';
 import { DriveService } from './DriveService.js';
 import { EmailService } from './EmailService.js';
@@ -49,6 +50,7 @@ import { NoteUpdateService } from './NoteUpdateService.js';
 import { NoteDeleteService } from './NoteDeleteService.js';
 import { NotePiningService } from './NotePiningService.js';
 import { NoteReadService } from './NoteReadService.js';
+import { NoteDraftService } from './NoteDraftService.js';
 import { NotificationService } from './NotificationService.js';
 import { PollService } from './PollService.js';
 import { PushNotificationService } from './PushNotificationService.js';
@@ -124,6 +126,7 @@ import { RenoteMutingEntityService } from './entities/RenoteMutingEntityService.
 import { NoteEntityService } from './entities/NoteEntityService.js';
 import { NoteFavoriteEntityService } from './entities/NoteFavoriteEntityService.js';
 import { NoteReactionEntityService } from './entities/NoteReactionEntityService.js';
+import { NoteDraftEntityService } from './entities/NoteDraftEntityService.js';
 import { NotificationEntityService } from './entities/NotificationEntityService.js';
 import { PageEntityService } from './entities/PageEntityService.js';
 import { PageLikeEntityService } from './entities/PageLikeEntityService.js';
@@ -159,6 +162,7 @@ import { ApPersonService } from './activitypub/models/ApPersonService.js';
 import { ApQuestionService } from './activitypub/models/ApQuestionService.js';
 import { ApEventService } from './activitypub/models/ApEventService.js';
 import { ApGameService } from './activitypub/models/ApGameService.js';
+import { ApClipService } from './activitypub/models/ApClipService.js';
 import { QueueModule } from './QueueModule.js';
 import { QueueService } from './QueueService.js';
 import { LoggerService } from './LoggerService.js';
@@ -180,6 +184,7 @@ const $CaptchaService: Provider = { provide: 'CaptchaService', useExisting: Capt
 const $CreateSystemUserService: Provider = { provide: 'CreateSystemUserService', useExisting: CreateSystemUserService };
 const $CustomEmojiService: Provider = { provide: 'CustomEmojiService', useExisting: CustomEmojiService };
 const $DeleteAccountService: Provider = { provide: 'DeleteAccountService', useExisting: DeleteAccountService };
+const $TruncateAccountService: Provider = { provide: 'TruncateAccountService', useExisting: TruncateAccountService };
 const $DownloadService: Provider = { provide: 'DownloadService', useExisting: DownloadService };
 const $DriveService: Provider = { provide: 'DriveService', useExisting: DriveService };
 const $EmailService: Provider = { provide: 'EmailService', useExisting: EmailService };
@@ -202,6 +207,7 @@ const $NoteUpdateService: Provider = { provide: 'NoteUpdateService', useExisting
 const $NoteDeleteService: Provider = { provide: 'NoteDeleteService', useExisting: NoteDeleteService };
 const $NotePiningService: Provider = { provide: 'NotePiningService', useExisting: NotePiningService };
 const $NoteReadService: Provider = { provide: 'NoteReadService', useExisting: NoteReadService };
+const $NoteDraftService: Provider = { provide: 'NoteDraftService', useExisting: NoteDraftService };
 const $NotificationService: Provider = { provide: 'NotificationService', useExisting: NotificationService };
 const $PollService: Provider = { provide: 'PollService', useExisting: PollService };
 const $ProxyAccountService: Provider = { provide: 'ProxyAccountService', useExisting: ProxyAccountService };
@@ -283,6 +289,7 @@ const $RenoteMutingEntityService: Provider = { provide: 'RenoteMutingEntityServi
 const $NoteEntityService: Provider = { provide: 'NoteEntityService', useExisting: NoteEntityService };
 const $NoteFavoriteEntityService: Provider = { provide: 'NoteFavoriteEntityService', useExisting: NoteFavoriteEntityService };
 const $NoteReactionEntityService: Provider = { provide: 'NoteReactionEntityService', useExisting: NoteReactionEntityService };
+const $NoteDraftEntityService: Provider = { provide: 'NoteDraftEntityService', useExisting: NoteDraftEntityService };
 const $NotificationEntityService: Provider = { provide: 'NotificationEntityService', useExisting: NotificationEntityService };
 const $PageEntityService: Provider = { provide: 'PageEntityService', useExisting: PageEntityService };
 const $PageLikeEntityService: Provider = { provide: 'PageLikeEntityService', useExisting: PageLikeEntityService };
@@ -319,6 +326,7 @@ const $ApPersonService: Provider = { provide: 'ApPersonService', useExisting: Ap
 const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting: ApQuestionService };
 const $ApEventService: Provider = { provide: 'ApEventService', useExisting: ApEventService };
 const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGameService };
+const $ApClipService: Provider = { provide: 'ApClipService', useExisting: ApClipService };
 //#endregion
 
 @Module({
@@ -341,6 +349,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		CreateSystemUserService,
 		CustomEmojiService,
 		DeleteAccountService,
+		TruncateAccountService,
 		DownloadService,
 		DriveService,
 		EmailService,
@@ -363,6 +372,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		NoteDeleteService,
 		NotePiningService,
 		NoteReadService,
+		NoteDraftService,
 		NotificationService,
 		PollService,
 		ProxyAccountService,
@@ -444,6 +454,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		NoteEntityService,
 		NoteFavoriteEntityService,
 		NoteReactionEntityService,
+		NoteDraftEntityService,
 		NotificationEntityService,
 		PageEntityService,
 		PageLikeEntityService,
@@ -480,6 +491,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		ApQuestionService,
 		ApEventService,
 		ApGameService,
+		ApClipService,
 		QueueService,
 
 		//#region 文字列ベースでのinjection用(循環参照対応のため)
@@ -498,6 +510,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$CreateSystemUserService,
 		$CustomEmojiService,
 		$DeleteAccountService,
+		$TruncateAccountService,
 		$DownloadService,
 		$DriveService,
 		$EmailService,
@@ -520,6 +533,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$NoteDeleteService,
 		$NotePiningService,
 		$NoteReadService,
+		$NoteDraftService,
 		$NotificationService,
 		$PollService,
 		$ProxyAccountService,
@@ -601,6 +615,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$NoteEntityService,
 		$NoteFavoriteEntityService,
 		$NoteReactionEntityService,
+		$NoteDraftEntityService,
 		$NotificationEntityService,
 		$PageEntityService,
 		$PageLikeEntityService,
@@ -637,6 +652,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$ApQuestionService,
 		$ApEventService,
 		$ApGameService,
+		$ApClipService,
 		//#endregion
 	],
 	exports: [
@@ -656,6 +672,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		CreateSystemUserService,
 		CustomEmojiService,
 		DeleteAccountService,
+		TruncateAccountService,
 		DownloadService,
 		DriveService,
 		EmailService,
@@ -678,6 +695,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		NoteDeleteService,
 		NotePiningService,
 		NoteReadService,
+		NoteDraftService,
 		NotificationService,
 		PollService,
 		ProxyAccountService,
@@ -758,6 +776,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		NoteEntityService,
 		NoteFavoriteEntityService,
 		NoteReactionEntityService,
+		NoteDraftEntityService,
 		NotificationEntityService,
 		PageEntityService,
 		PageLikeEntityService,
@@ -794,6 +813,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		ApQuestionService,
 		ApEventService,
 		ApGameService,
+		ApClipService,
 		QueueService,
 
 		//#region 文字列ベースでのinjection用(循環参照対応のため)
@@ -812,6 +832,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$CreateSystemUserService,
 		$CustomEmojiService,
 		$DeleteAccountService,
+		$TruncateAccountService,
 		$DownloadService,
 		$DriveService,
 		$EmailService,
@@ -834,6 +855,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$NoteDeleteService,
 		$NotePiningService,
 		$NoteReadService,
+		$NoteDraftService,
 		$NotificationService,
 		$PollService,
 		$ProxyAccountService,
@@ -914,6 +936,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$NoteEntityService,
 		$NoteFavoriteEntityService,
 		$NoteReactionEntityService,
+		$NoteDraftEntityService,
 		$NotificationEntityService,
 		$PageEntityService,
 		$PageLikeEntityService,
@@ -950,6 +973,7 @@ const $ApGameService: Provider = { provide: 'ApGameService', useExisting: ApGame
 		$ApQuestionService,
 		$ApEventService,
 		$ApGameService,
+		$ApClipService,
 		//#endregion
 	],
 })

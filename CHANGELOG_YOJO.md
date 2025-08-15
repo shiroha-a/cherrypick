@@ -1,15 +1,122 @@
+## 1.5.1
+Cherrypick 4.15.0  
+Misskey 2025.2.0
+
+### Release Date
+2025-08-01
+
+### General
+
+### Client
+- Fix: タグUIから添付するタグを隠す場合#が先頭にないとハッシュタグにならない問題を修正 [#738](https://github.com/yojo-art/cherrypick/pull/738)
+- Fix: 検索許可範囲が設定されない不具合を修正 [#742](https://github.com/yojo-art/cherrypick/pull/742)
+- Fix: 下書きの保存でエラーが発生した場合その内容を表示するように [#748](https://github.com/yojo-art/cherrypick/pull/748)
+
+### Server
+- Change: `users/show`で更新対象のリモートユーザーが指定されたとき、APIがタイムアウトすることがあるため非同期更新をするように [#740](https://github.com/yojo-art/cherrypick/pull/740)
+- Fix: ノート通知(新着,リノートetc)を作成するときにそのノートの公開範囲を考慮し、可視ユーザーにのみ通知を作成するように [#743](https://github.com/yojo-art/cherrypick/pull/743)
+
+## 1.5.0
+Cherrypick 4.15.0  
+Misskey 2025.2.0
+
+### Release Date
+2025-06-08
+
+### General
+- Enhance: ハッシュタグを非表示で投稿できるように [#712](https://github.com/yojo-art/cherrypick/pull/712)
+- Feat: クリップをActivityPub拡張表現で扱う [#617](https://github.com/yojo-art/cherrypick/pull/617)
+  - Person Service Applicationが_yojoart_clipsを持つようになります
+  - _yojoart_clipsはクリップの一覧を表現するOrderedCollectionです
+	- nodeinfo内features配列に https://yojoart.kzkr.xyz/ns#_yojoart_clips として機能対応を示します
+- Enhance: Peertubeのプレイリストをクリップとして見れるように [#732](https://github.com/yojo-art/cherrypick/pull/732)
+
+### Client
+- Fix: ロール設定に予約投稿の最大数が2個ある [#714](https://github.com/yojo-art/cherrypick/pull/714)
+- Enhance: メディアタイムラインをグリッドレイアウトに変更する機能 [#709](https://github.com/yojo-art/cherrypick/pull/709)
+  - `設定->アピアランス->メディアタイムラインをグリッドレイアウトに変更`　で変更できます
+- Enhance: フロントエンド上からnotes/unrenoteを呼べるように [#711](https://github.com/yojo-art/cherrypick/pull/711)
+
+### Server
+- Fix UserAgentをyojo-artに変更 [#691](https://github.com/yojo-art/cherrypick/pull/691)
+
+## 1.4.1
+Cherrypick 4.15.0  
+Misskey 2025.2.0
+
+### Release Date
+2025-03-29
+
+### General
+
+### Client
+- Fix: ノート詳細から前後TL見る機能の修正 [#677](https://github.com/yojo-art/cherrypick/pull/677)
+- Fix: 返信用投稿フォームを通常投稿フォームと統一 [#676](https://github.com/yojo-art/cherrypick/pull/676)
+- Fix: 右クリックメニューにスクロールバーがある時、派生メニューで考慮されない不具合の修正 [#680](https://github.com/yojo-art/cherrypick/pull/680)
+  - 問題が起きていた変更部分を1.3.1時点に戻しました
+- Fix: ローカルのリアクションに相乗りする時の確認ダイアログを修正 [#682](https://github.com/yojo-art/cherrypick/pull/682)
+- Fix: ノート内絵文字を付ける機能でローカルに無い絵文字は機能を非表示に [#683](https://github.com/yojo-art/cherrypick/pull/683)
+- Fix: ノート詳細リアクションタブ内のリアクションボタンの画像部分にクリック判定が無い問題を修正 [#684](https://github.com/yojo-art/cherrypick/pull/684)
+
+### Server
+
+## 1.4.0
+Cherrypick 4.15.0  
+Misskey 2025.2.0
+
+### Release Date
+2025-03-16
+
+### General
+- Fix: リポジトリURLとフィードバックURLを変更(改変版を利用してると表示される問題も修正) [#666](https://github.com/yojo-art/cherrypick/pull/666)
+- Feat: リモートインスタンスのソフトウェア一覧 [#659](https://github.com/yojo-art/cherrypick/pull/659)
+  -　エンドポイント:`api/federation/remote-software` 
+  - フロントエンドでは`/about#charts` で確認できます
+- Change: ロックダウン機能を削除 [#650](https://github.com/yojo-art/cherrypick/pull/650)
+  - リモートユーザーの設定は反映します
+
+### Client
+- Fix: yojo-art アップデートを開くとサーバー設定が更新される問題を修正 [#651](https://github.com/yojo-art/cherrypick/pull/651)
+- Fix: 非ログインでローカル/グローバルタイムラインが表示できない不具合の修正 [#667](https://github.com/yojo-art/cherrypick/pull/667)
+- Feat: リアクション付ける前に確認ダイアログを追加するオプション [#657](https://github.com/yojo-art/cherrypick/pull/657)
+- Change: 投稿フォームのUI変更 [#655](https://github.com/yojo-art/cherrypick/pull/655)
+
+### Server
+- Fix: リモートのイベントを表示できるように [#658](https://github.com/yojo-art/cherrypick/pull/658)
+- Change: `api/i/notifications-grouped`で新着ノートをデフォルトでまとめないように[#662](https://github.com/yojo-art/cherrypick/pull/662)
+- Enhance: 通常の検索でもOpenSearchを利用できるように [#661](https://github.com/yojo-art/cherrypick/pull/661)
+
+## 1.3.1
+Cherrypick 4.13.0  
+Misskey 2024.10.1
+
+### Release Date
+2025-02-11
+
+### General
+- Fix: Docker のビルドに失敗する問題を修正  
+  (Cherry-picked from https://github.com/misskey-dev/misskey/pull/15387)
+- Fix: ログイン通知を削除できる問題 [#642](https://github.com/yojo-art/cherrypick/pull/642)
+
+### Client
+- Change: リモートユーザーのユーザーページでは`登録日`を`初観測`と表記するように [#633](https://github.com/yojo-art/cherrypick/pull/633)
+
+### Server
+- Fix: 管理者のコントロールパネルでシステムにしたときリモートファイルも表示される [#641](https://github.com/yojo-art/cherrypick/pull/641)
+- Change: 絵文字連合で`author`がなければ`creator`の値を使うように [#640](https://github.com/yojo-art/cherrypick/pull/640)
+
 ## 1.3.0
 Cherrypick 4.13.0  
 Misskey 2024.10.1
 
 ### Release Date
-2025-01-28
+2025-01-30
 
 ### General
 - Feat: システムユーザーのファイル一覧を追加 [#595](https://github.com/yojo-art/cherrypick/pull/595)
 - Feat: 公開投稿以外の配送を制限する機能 [#574](https://github.com/yojo-art/cherrypick/pull/574)
 - Enhance: Fedibird形式の絵文字情報連合に対応 [#604](https://github.com/yojo-art/cherrypick/pull/604)
-	- 以下の情報が対応ソフト間で連合されます
+  - 以下の情報が対応ソフト間で連合されます
     - キーワード
     - コピー条件
     - カテゴリ
@@ -17,7 +124,7 @@ Misskey 2024.10.1
     - ライセンス
     - 説明
     - 使用に関しての説明
-
+- Enhance: `emoji`の拡張プロパティ`isSensitive?: boolean`が定義されている場合、カスタム絵文字のセンシティブフラグを連合するように
 ### Client
 - Fix: チュートリアルを現状に合わせて更新[#586](https://github.com/yojo-art/cherrypick/pull/586)
 - Fix: 自分自身のリアクション一覧が公開設定に影響される問題を修正 [#614](https://github.com/yojo-art/cherrypick/pull/614)

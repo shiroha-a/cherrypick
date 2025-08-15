@@ -562,14 +562,29 @@ const extension_context_definition = {
 	'_misskey_votes': 'misskey:_misskey_votes',
 	'_misskey_summary': 'misskey:_misskey_summary',
 	'_misskey_followedMessage': 'misskey:_misskey_followedMessage',
+	'_misskey_requireSigninToViewContents': 'misskey:_misskey_requireSigninToViewContents',
+	'_misskey_makeNotesFollowersOnlyBefore': 'misskey:_misskey_makeNotesFollowersOnlyBefore',
+	'_misskey_makeNotesHiddenBefore': 'misskey:_misskey_makeNotesHiddenBefore',
+	'_misskey_license': 'misskey:_misskey_license',
+	'freeText': {
+		'@id': 'misskey:freeText',
+		'@type': 'schema:text',
+	},
 	'_misskey_talk': 'misskey:_misskey_talk',
 	'isCat': 'misskey:isCat',
 	// yojo-art
 	yojoart: 'https://yojoart.kzkr.xyz/ns#',
 	'banner': 'yojoart:banner',
 	'Game': 'yojoart:Game',
+	'_yojoart_clips': 'yojoart:_yojoart_clips',
 	// vcard
 	vcard: 'http://www.w3.org/2006/vcard/ns#',
+	//配送しないから不要
+	//pt: 'https://joinpeertube.org/ns#',
+	//'playlists': {
+	//	'@id': 'pt:playlists',
+	//	'@type': '@id',
+	//},
 } satisfies Context;
 
 export const CONTEXT: (string | Context)[] = [...context_iris, extension_context_definition];

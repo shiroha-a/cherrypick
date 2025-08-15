@@ -10,6 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		ref="tlComponent"
 		:pagination="paginationQuery"
 		:noGap="!defaultStore.state.showGapBetweenNotesInTimeline"
+		:grid="grid"
 		@queue="emit('queue', $event)"
 		@status="prComponent?.setDisabled($event)"
 	/>
@@ -20,6 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { computed, watch, onMounted, onUnmounted, provide, ref, shallowRef } from 'vue';
 import * as Misskey from 'cherrypick-js';
 import type { BasicTimelineType } from '@/timelines.js';
+import type { Paging } from '@/components/MkPagination.vue';
 import MkNotes from '@/components/MkNotes.vue';
 import MkPullToRefresh from '@/components/MkPullToRefresh.vue';
 import { useStream } from '@/stream.js';
@@ -27,7 +29,6 @@ import * as sound from '@/scripts/sound.js';
 import { $i } from '@/account.js';
 import { instance } from '@/instance.js';
 import { defaultStore } from '@/store.js';
-import { Paging } from '@/components/MkPagination.vue';
 import { vibrate } from '@/scripts/vibrate.js';
 import { globalEvents } from '@/events.js';
 
@@ -40,11 +41,13 @@ const props = withDefaults(defineProps<{
 	sound?: boolean;
 	withRenotes?: boolean;
 	withReplies?: boolean;
+	withSensitive?: boolean;
 	onlyFiles?: boolean;
-  onlyCats?: boolean;
+	onlyCats?: boolean;
 }>(), {
 	withRenotes: true,
 	withReplies: false,
+	withSensitive: true,
 	onlyFiles: false,
 	onlyCats: false,
 });
@@ -55,19 +58,20 @@ const emit = defineEmits<{
 }>();
 
 provide('inTimeline', true);
+provide('tl_withSensitive', computed(() => props.withSensitive));
 provide('inChannel', computed(() => props.src === 'channel'));
 
 type TimelineQueryType = {
-  antennaId?: string,
-  withRenotes?: boolean,
-  withReplies?: boolean,
-  withFiles?: boolean,
-  withCats?: boolean,
-  visibility?: string,
-  listId?: string,
-  channelId?: string,
-  roleId?: string
-}
+	antennaId?: string,
+	withRenotes?: boolean,
+	withReplies?: boolean,
+	withFiles?: boolean,
+	withCats?: boolean,
+	visibility?: string,
+	listId?: string,
+	channelId?: string,
+	roleId?: string
+};
 
 const prComponent = shallowRef<InstanceType<typeof MkPullToRefresh>>();
 const tlComponent = shallowRef<InstanceType<typeof MkNotes>>();
@@ -98,8 +102,14 @@ let connection2: Misskey.ChannelConnection | null = null;
 let paginationQuery: Paging | null = null;
 
 const stream = useStream();
+const gridMediaTimeline = computed(() => {
+	return defaultStore.state.gridLayoutMediaTimeline;
+});
+let grid = false;
 
 function connectChannel() {
+	grid = gridMediaTimeline.value && props.src === 'media';
+
 	if (props.src === 'antenna') {
 		if (props.antenna == null) return;
 		connection = stream.useChannel('antenna', {
@@ -135,6 +145,12 @@ function connectChannel() {
 		});
 	} else if (props.src === 'global') {
 		connection = stream.useChannel('globalTimeline', {
+			withRenotes: props.withRenotes,
+			withFiles: props.onlyFiles ? true : undefined,
+			withCats: props.onlyCats,
+		});
+	} else if (props.src === 'bubble') {
+		connection = stream.useChannel('bubbleTimeline', {
 			withRenotes: props.withRenotes,
 			withFiles: props.onlyFiles ? true : undefined,
 			withCats: props.onlyCats,
@@ -224,6 +240,13 @@ function updatePaginationQuery() {
 			withFiles: props.onlyFiles ? true : undefined,
 			withCats: props.onlyCats,
 		};
+	} else if (props.src === 'bubble') {
+		endpoint = 'notes/bubble-timeline';
+		query = {
+			withRenotes: props.withRenotes,
+			withFiles: props.onlyFiles ? true : undefined,
+			withCats: props.onlyCats,
+		};
 	} else if (props.src === 'mentions') {
 		endpoint = 'notes/mentions';
 		query = null;
@@ -278,6 +301,9 @@ function refreshEndpointAndChannel() {
 // デッキのリストカラムでwithRenotesを変更した場合に自動的に更新されるようにさせる
 // IDが切り替わったら切り替え先のTLを表示させたい
 watch(() => [props.list, props.antenna, props.channel, props.role, props.withRenotes], refreshEndpointAndChannel);
+
+// withSensitiveはクライアントで完結する処理のため、単にリロードするだけでOK
+watch(() => props.withSensitive, reloadTimeline);
 
 // 初回表示用
 refreshEndpointAndChannel();

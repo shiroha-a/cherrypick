@@ -45,6 +45,7 @@ type Option = {
 	files?: MiDriveFile[] | null;
 	name?: string | null;
 	text?: string | null;
+	tagText?: string | null;
 	disableRightClick?: boolean | null;
 	cw?: string | null;
 	apHashtags?: string[] | null;
@@ -110,7 +111,9 @@ export class NoteUpdateService implements OnApplicationShutdown {
 
 			const combinedTokens = tokens.concat(cwTokens).concat(choiceTokens);
 
-			tags = data.apHashtags ?? extractHashtags(combinedTokens);
+			if (data.apHashtags) tags = data.apHashtags;
+			else if (data.tagText) tags = extractHashtags(combinedTokens).concat(extractHashtags(mfm.parse(data.tagText)));
+			else tags = extractHashtags(combinedTokens);
 
 			emojis = data.apEmojis ?? extractCustomEmojisFromMfm(combinedTokens);
 		}
@@ -132,7 +135,7 @@ export class NoteUpdateService implements OnApplicationShutdown {
 	@bindThis
 	private async updateNote(user: {
 		id: MiUser['id']; host: MiUser['host'];
-		}, note: MiNote, data: Option, tags: string[], emojis: string[]): Promise<MiNote | null> {
+	}, note: MiNote, data: Option, tags: string[], emojis: string[]): Promise<MiNote | null> {
 		const updatedAtHistory = note.updatedAtHistory ? note.updatedAtHistory : [];
 
 		const values = new MiNote({

@@ -124,6 +124,7 @@ export class NodeinfoServerService {
 					disableRegistration: meta.disableRegistration,
 					disableLocalTimeline: !basePolicies.ltlAvailable,
 					disableGlobalTimeline: !basePolicies.gtlAvailable,
+					disableBubbleTimeline: !basePolicies.btlAvailable,
 					emailRequiredForSignup: meta.emailRequiredForSignup,
 					enableHcaptcha: meta.enableHcaptcha,
 					enableRecaptcha: meta.enableRecaptcha,
@@ -141,6 +142,7 @@ export class NodeinfoServerService {
 						'emoji_keywords',
 						'emoji_reaction',
 						'quote',
+						'https://yojoart.kzkr.xyz/ns#_yojoart_clips',
 					],
 				},
 			};
