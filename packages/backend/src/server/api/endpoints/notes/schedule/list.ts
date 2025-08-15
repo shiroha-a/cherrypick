@@ -33,7 +33,6 @@ export const meta = {
 						createdAt: { type: 'string', optional: false, nullable: false },
 						text: { type: 'string', optional: true, nullable: false },
 						cw: { type: 'string', optional: true, nullable: true },
-						localOnly: { type: 'boolean', optional: false, nullable: false },
 						fileIds: { type: 'array', optional: false, nullable: false, items: { type: 'string', format: 'misskey:id', optional: false, nullable: false } },
 						visibility: { type: 'string', enum: ['public', 'home', 'followers', 'specified'], optional: false, nullable: false },
 						visibleUsers: {
@@ -93,7 +92,6 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				id: string;
 				note: {
 					text?: string;
-					localOnly: boolean;
 					cw?: string|null;
 					fileIds: string[];
 					visibility: typeof noteVisibilities[number];

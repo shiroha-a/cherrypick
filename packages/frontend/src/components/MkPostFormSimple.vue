@@ -44,10 +44,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<span :class="$style.headerRightButtonText">{{ channel.name }}</span>
 					</button>
 				</template>
-				<button v-click-anime v-tooltip="i18n.ts._visibility.disableFederation" class="_button" :class="[$style.headerRightItem, { [$style.danger]: localOnly }]" :disabled="channel != null || visibility === 'specified'" @click="toggleLocalOnly">
-					<span v-if="!localOnly"><i class="ti ti-rocket"></i></span>
-					<span v-else><i class="ti ti-rocket-off"></i></span>
-				</button>
 				<button v-click-anime v-tooltip="i18n.ts.reactionAcceptance" class="_button" :class="[$style.headerRightItem, { [$style.danger]: reactionAcceptance === 'likeOnly' }]" @click="toggleReactionAcceptance">
 					<span v-if="reactionAcceptance === 'likeOnly'"><i class="ti ti-heart"></i></span>
 					<span v-else-if="reactionAcceptance === 'likeOnlyForRemote'"><i class="ti ti-heart-plus"></i></span>
@@ -181,7 +177,6 @@ const props = withDefaults(defineProps<{
 	initialCw?: string;
 	initialVisibility?: (typeof Misskey.noteVisibilities)[number];
 	initialFiles?: Misskey.entities.DriveFile[];
-	initialLocalOnly?: boolean;
 	initialVisibleUsers?: Misskey.entities.UserDetailed[];
 	initialNote?: Misskey.entities.Note & {
 		isSchedule?: boolean,
@@ -237,7 +232,6 @@ watch(showProfilePreview, () => defaultStore.set('showProfilePreview', showProfi
 const showAddMfmFunction = ref(defaultStore.state.enableQuickAddMfmFunction);
 watch(showAddMfmFunction, () => defaultStore.set('enableQuickAddMfmFunction', showAddMfmFunction.value));
 const cw = ref<string | null>(props.initialCw ?? null);
-	const localOnly = ref<boolean>(props.initialLocalOnly ?? defaultStore.state.rememberNoteVisibility ? defaultStore.state.localOnly : defaultStore.state.defaultNoteLocalOnly);
 const visibility = ref(props.initialVisibility ?? (defaultStore.state.rememberNoteVisibility ? defaultStore.state.visibility : defaultStore.state.defaultNoteVisibility));
 const searchableBy = ref(defaultStore.state.rememberNoteSearchbility ? defaultStore.state.searchbility : defaultStore.state.defaultNoteSearchbility);
 const visibleUsers = ref<Misskey.entities.UserDetailed[]>([]);
@@ -355,11 +349,6 @@ if ($i.isSilenced && visibility.value === 'public') {
 	visibility.value = 'home';
 }
 
-if (props.channel) {
-	visibility.value = 'public';
-	localOnly.value = true; // TODO: チャンネルが連合するようになった折には消す
-}
-
 // 公開以外へのリプライ時は元の公開範囲を引き継ぐ
 if (props.reply && ['home', 'followers', 'specified'].includes(props.reply.visibility)) {
 	if (props.reply.visibility === 'home' && visibility.value === 'followers') {
@@ -407,7 +396,6 @@ function watchForDraft() {
 	watch(event, () => saveDraft());
 	watch(files, () => saveDraft(), { deep: true });
 	watch(visibility, () => saveDraft());
-	watch(localOnly, () => saveDraft());
 	watch(searchableBy, () => saveDraft());
 	watch(quoteId, () => saveDraft());
 	watch(reactionAcceptance, () => saveDraft());
@@ -516,12 +504,6 @@ function upload(file: File, name?: string): void {
 }
 
 function setVisibility() {
-	if (props.channel) {
-		visibility.value = 'public';
-		localOnly.value = true; // TODO: チャンネルが連合するようになった折には消す
-		return;
-	}
-
 	const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkVisibilityPicker.vue')), {
 		currentVisibility: visibility.value,
 		isSilenced: $i.isSilenced,
@@ -551,52 +533,6 @@ function setSearchbility() {
 		},
 		closed: () => dispose(),
 	});
-}
-
-async function toggleLocalOnly() {
-	if (props.channel) {
-		visibility.value = 'public';
-		localOnly.value = true; // TODO: チャンネルが連合するようになった折には消す
-		return;
-	}
-
-	const neverShowInfo = miLocalStorage.getItem('neverShowLocalOnlyInfo');
-
-	if (!localOnly.value && neverShowInfo !== 'true') {
-		const confirm = await os.actions({
-			type: 'question',
-			title: i18n.ts.disableFederationConfirm,
-			text: i18n.ts.disableFederationConfirmWarn,
-			actions: [
-				{
-					value: 'ok' as const,
-					text: i18n.ts.disableFederationOk,
-				},
-				{
-					value: 'neverShow' as const,
-					text: `${i18n.ts.disableFederationOk} (${i18n.ts.neverShow})`,
-					danger: true,
-				},
-				{
-					value: 'cancel' as const,
-					text: i18n.ts.cancel,
-					primary: true,
-				},
-			],
-		});
-
-		if (confirm.canceled) return;
-		if (confirm.result === 'cancel') return;
-
-		if (confirm.result === 'neverShow') {
-			miLocalStorage.setItem('neverShowLocalOnlyInfo', 'true');
-		}
-	}
-
-	localOnly.value = !localOnly.value;
-	if (defaultStore.state.rememberNoteVisibility) {
-		defaultStore.set('localOnly', localOnly.value);
-	}
 }
 
 async function toggleReactionAcceptance() {
@@ -656,7 +592,6 @@ function onKeydown(ev: KeyboardEvent) {
 		else if (ev.ctrlKey && ev.shiftKey && (visibility.value === 'public')) visibility.value = 'home';
 		else if (ev.ctrlKey && ev.shiftKey && (visibility.value === 'home')) visibility.value = 'followers';
 		else if (ev.ctrlKey && ev.shiftKey && (visibility.value === 'followers')) visibility.value = 'specified';
-		if ((ev.ctrlKey || ev.metaKey) && ev.altKey) localOnly.value = !localOnly.value;
 	}
 
 	if (ev.key === 'Escape') emit('esc');
@@ -788,7 +723,6 @@ function saveDraft() {
 			cw: cw.value,
 			disableRightClick: disableRightClick.value,
 			visibility: visibility.value,
-			localOnly: localOnly.value,
 			searchableBy: searchableBy.value,
 			files: files.value,
 			poll: poll.value,
@@ -909,7 +843,6 @@ async function post(ev?: MouseEvent) {
 		event: event.value,
 		cw: useCw.value ? cw.value ?? '' : null,
 		visibility: visibility.value,
-		localOnly: localOnly.value,
 		searchableBy: searchableBy.value,
 		visibleUserIds: visibility.value === 'specified' ? visibleUsers.value.map(u => u.id) : undefined,
 		reactionAcceptance: reactionAcceptance.value,
@@ -1037,7 +970,7 @@ function cancel() {
 }
 
 function insertMention() {
-	os.selectUser({ localOnly: localOnly.value, includeSelf: true }).then(user => {
+	os.selectUser({ localOnly: false, includeSelf: true }).then(user => {
 		insertTextAtCursor(textareaEl.value, '@' + Misskey.acct.toString(user) + ' ');
 	});
 }
@@ -1253,7 +1186,6 @@ onMounted(() => {
 				cw.value = draft.data.cw;
 				disableRightClick.value = draft.data.disableRightClick;
 				visibility.value = draft.data.visibility;
-				localOnly.value = draft.data.localOnly;
 				searchableBy.value = draft.data.searchableBy;
 				files.value = (draft.data.files || []).filter(draftFile => draftFile);
 				if (draft.data.poll) {
@@ -1279,7 +1211,6 @@ onMounted(() => {
 			useCw.value = init.cw != null;
 			cw.value = init.cw ?? null;
 			visibility.value = init.visibility;
-			localOnly.value = init.localOnly ?? false;
 			searchableBy.value = init.searchableBy;
 			files.value = init.files ?? [];
 			if (init.poll) {

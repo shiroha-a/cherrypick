@@ -243,30 +243,15 @@ export class NoteCreateService implements OnApplicationShutdown {
 		isBot: MiUser['isBot'];
 		isCat: MiUser['isCat'];
 	}, data: Option, silent = false): Promise<MiNote> {
-		// チャンネル外にリプライしたら対象のスコープに合わせる
-		// (クライアントサイドでやっても良い処理だと思うけどとりあえずサーバーサイドで)
-		if (data.reply && data.channel && data.reply.channelId !== data.channel.id) {
-			if (data.reply.channelId) {
-				data.channel = await this.channelsRepository.findOneBy({ id: data.reply.channelId });
-			} else {
-				data.channel = null;
-			}
-		}
-		// チャンネル内にリプライしたら対象のスコープに合わせる
-		// (クライアントサイドでやっても良い処理だと思うけどとりあえずサーバーサイドで)
-		if (data.reply && (data.channel == null) && data.reply.channelId) {
-			data.channel = await this.channelsRepository.findOneBy({ id: data.reply.channelId });
-		}
+		//このフォークではチャンネルの存在を認めない
+		data.channel = undefined;
 
 		if (data.createdAt == null) data.createdAt = new Date();
 		if (data.visibility == null) data.visibility = 'public';
 		if (data.localOnly == null) data.localOnly = false;
-		if (data.channel != null) data.visibility = 'public';
-		if (data.channel != null) data.visibleUsers = [];
-		if (data.channel != null) data.localOnly = true;
 		if (data.disableRightClick == null) data.disableRightClick = false;
 
-		if (data.visibility === 'public' && data.channel == null) {
+		if (data.visibility === 'public') {
 			const sensitiveWords = this.meta.sensitiveWords;
 			if (this.utilityService.isKeyWordIncluded(data.cw ?? data.text ?? '', sensitiveWords)) {
 				data.visibility = 'home';
@@ -403,7 +388,8 @@ export class NoteCreateService implements OnApplicationShutdown {
 		if (mentionedUsers.length > 0 && mentionedUsers.length > (await this.roleService.getUserPolicies(user.id)).mentionLimit) {
 			throw new IdentifiableError('9f466dab-c856-48cd-9e65-ff90ff750580', 'Note contains too many mentions');
 		}
-
+		//このフォークではローカルのみ投稿を認めない
+		data.localOnly = false;
 		const note = await this.insertNote(user, data, tags, emojis, mentionedUsers);
 
 		setImmediate('post created', { signal: this.#shutdownController.signal }).then(

@@ -143,7 +143,6 @@ export const paramDef = {
 			type: 'string', format: 'misskey:id',
 		} },
 		cw: { type: 'string', nullable: true, minLength: 1, maxLength: 100 },
-		localOnly: { type: 'boolean', default: false },
 		reactionAcceptance: { type: 'string', nullable: true, enum: [null, 'likeOnly', 'likeOnlyForRemote', 'nonSensitiveOnly', 'nonSensitiveOnlyForLocalLikeOnlyForRemote'], default: null },
 		searchableBy: { type: 'string', nullable: true, enum: searchableTypes, default: 'public' },
 		disableRightClick: { type: 'boolean', default: false },
@@ -317,18 +316,6 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					// specified / direct noteはreject
 					throw new ApiError(meta.errors.cannotRenoteDueToVisibility);
 				}
-				if (renote.channelId && renote.channelId !== ps.channelId) {
-					// チャンネルのノートに対しリノート要求がきたとき、チャンネル外へのリノート可否をチェック
-					// リノートのユースケースのうち、チャンネル内→チャンネル外は少数だと考えられるため、JOINはせず必要な時に都度取得する
-					const renoteChannel = await this.channelsRepository.findOneById(renote.channelId);
-					if (renoteChannel == null) {
-						// リノートしたいノートが書き込まれているチャンネルが無い
-						throw new ApiError(meta.errors.noSuchChannel);
-					} else if (!renoteChannel.allowRenoteToExternal) {
-						// リノート作成のリクエストだが、対象チャンネルがリノート禁止だった場合
-						throw new ApiError(meta.errors.cannotRenoteOutsideOfChannel);
-					}
-				}
 			}
 
 			let reply: MiNote | null = null;
@@ -367,14 +354,6 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					}
 				} else if (typeof ps.poll.expiredAfter === 'number') {
 					ps.poll.expiresAt = scheduleNote_scheduledAt + ps.poll.expiredAfter;
-				}
-			}
-
-			let channel: MiChannel | null = null;
-			if (ps.channelId != null) {
-				channel = await this.channelsRepository.findOneBy({ id: ps.channelId, isArchived: false });
-				if (channel == null) {
-					throw new ApiError(meta.errors.noSuchChannel);
 				}
 			}
 
@@ -420,12 +399,11 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				reply: reply?.id,
 				renote: renote?.id,
 				cw: ps.cw,
-				localOnly: ps.localOnly,
+				localOnly: false,
 				reactionAcceptance: ps.reactionAcceptance,
 				searchableBy: ps.searchableBy ?? 'public',
 				visibility: ps.visibility,
 				visibleUsers,
-				channel: channel?.id,
 				apMentions: ps.noExtractMentions ? [] : undefined,
 				apHashtags: ps.noExtractHashtags ? [] : undefined,
 				apEmojis: ps.noExtractEmojis ? [] : undefined,

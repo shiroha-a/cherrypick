@@ -154,7 +154,6 @@ export const paramDef = {
 			type: 'string', format: 'misskey:id',
 		} },
 		cw: { type: 'string', nullable: true, minLength: 1, maxLength: 100 },
-		localOnly: { type: 'boolean', default: false },
 		reactionAcceptance: { type: 'string', nullable: true, enum: [null, 'likeOnly', 'likeOnlyForRemote', 'nonSensitiveOnly', 'nonSensitiveOnlyForLocalLikeOnlyForRemote'], default: null },
 		searchableBy: {
 			type: 'string', nullable: true,
@@ -395,13 +394,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				}
 			}
 
-			let channel: MiChannel | null = null;
-			if (ps.channelId != null) {
-				channel = await this.channelsRepository.findOneBy({ id: ps.channelId, isArchived: false });
-				if (channel == null) {
-					throw new ApiError(meta.errors.noSuchChannel);
-				}
-			}
+			const channel: MiChannel | null = null;
 
 			if (ps.scheduledDelete) {
 				if (typeof ps.scheduledDelete.deleteAt === 'number') {
@@ -433,7 +426,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 						metadata: ps.event.metadata ?? {},
 					} : undefined,
 					cw: ps.cw,
-					localOnly: ps.localOnly,
+					localOnly: false,
 					reactionAcceptance: ps.reactionAcceptance,
 					disableRightClick: ps.disableRightClick,
 					searchableBy: ps.searchableBy,
