@@ -5,21 +5,21 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
 <div
-	:class="[$style.root, { [$style.modal]: modal, _popup: modal && (!defaultStore.state.useBlurEffect || !defaultStore.state.useBlurEffectForModal || !defaultStore.state.removeModalBgColorForBlur), _popupAcrylic: modal && defaultStore.state.useBlurEffect && defaultStore.state.useBlurEffectForModal && defaultStore.state.removeModalBgColorForBlur }]"
+	:class="[$style.root, { [$style.modal]: modal, _popup: modal && (!prefer.s.useBlurEffect || !prefer.s.useBlurEffectForModal || !prefer.s.removeModalBgColorForBlur), _popupAcrylic: modal && prefer.s.useBlurEffect && prefer.s.useBlurEffectForModal && prefer.s.removeModalBgColorForBlur }]"
 	@dragover.stop="onDragover"
 	@dragenter="onDragenter"
 	@dragleave="onDragleave"
 	@drop.stop="onDrop"
 >
 	<Transition
-		:enterActiveClass="defaultStore.state.animation ? $style.transition_header_enterActive : ''"
-		:enterFromClass="defaultStore.state.animation ? $style.transition_header_enterFrom : ''"
+		:enterActiveClass="prefer.s.animation ? $style.transition_header_enterActive : ''"
+		:enterFromClass="prefer.s.animation ? $style.transition_header_enterFrom : ''"
 	>
 		<header v-if="showForm" :class="$style.header">
 			<div :class="$style.headerLeft">
 				<button v-if="!fixed" :class="$style.cancel" class="_button" @click="cancel"><i class="ti ti-x"></i></button>
-				<button v-click-anime v-tooltip="i18n.ts.switchAccount" :class="[$style.account, { [$style.fixed]: fixed }]" class="_button" @click="openAccountMenu">
-					<MkAvatar :user="postAccount ?? $i" :class="$style.avatar"/>
+				<button v-click-anime v-tooltip="i18n.ts.account" :class="[$style.account, { [$style.fixed]: fixed }]" class="_button" @click="openAccountMenu">
+					<img :class="[$style.avatar, { [$style.square]: prefer.s.squareAvatars }]" :src="(postAccount ?? $i).avatarUrl"/>
 				</button>
 			</div>
 			<div :class="$style.headerRight">
@@ -51,7 +51,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 							<template v-if="posted"></template>
 							<template v-else-if="posting"><MkEllipsis/></template>
 							<template v-else>{{ submitText }}</template>
-							<i style="margin-left: 6px;" :class="posted ? 'ti ti-check' : saveAsDraft ? 'ti ti-pencil-minus' : replyTargetNote ? 'ti ti-arrow-back-up' : renoteTargetNote ? 'ti ti-quote' : updateMode ? 'ti ti-pencil' : defaultStore.state.renameTheButtonInPostFormToNya ? 'ti ti-paw-filled' : 'ti ti-send'"></i>
+							<i style="margin-left: 6px;" :class="submitIcon"></i>
 						</div>
 					</button>
 				</div>
@@ -70,53 +70,67 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<button class="_buttonPrimary" style="padding: 4px; border-radius: 8px;" @click="addVisibleUser"><i class="ti ti-plus ti-fw"></i></button>
 		</div>
 	</div>
+	<MkInfo v-if="scheduledAt != null" :class="$style.scheduledAt">
+		<I18n :src="i18n.ts.scheduleToPostOnX" tag="span">
+			<template #x>
+				<MkTime :time="scheduledAt" :mode="'detail'" style="font-weight: bold;"/>
+			</template>
+		</I18n> - <button class="_textButton" @click="cancelSchedule()">{{ i18n.ts.cancel }}</button>
+	</MkInfo>
+	<MkInfo v-if="scheduledNoteDelete != null" warn :class="$style.scheduledAt">
+		<I18n :src="i18n.ts.scheduledToDeleteOnX" tag="span">
+			<template #x>
+				<MkTime v-if="scheduledDeleteAt" :key="scheduledDeleteAt" :time="scheduledDeleteAt" :mode="'detail'" style="font-weight: bold;"/>
+			</template>
+		</I18n> - <button class="_textButton" @click="cancelScheduleDelete()">{{ i18n.ts.cancel }}</button>
+	</MkInfo>
 	<MkInfo v-if="hasNotSpecifiedMentions && showForm" warn :class="$style.hasNotSpecifiedMentions">{{ i18n.ts.notSpecifiedMentionWarning }} - <button class="_textButton" @click="addMissingMention()">{{ i18n.ts.add }}</button></MkInfo>
 	<div v-show="useCw && showForm" :class="$style.cwOuter">
 		<input ref="cwInputEl" v-model="cw" :class="$style.cw" :placeholder="i18n.ts.annotation" @keydown="onKeydown" @keyup="onKeyup" @compositionend="onCompositionEnd">
 		<div v-if="maxCwTextLength - cwTextLength < 20" :class="['_acrylic', $style.cwTextCount, { [$style.cwTextOver]: cwTextLength > maxCwTextLength }]">{{ maxCwTextLength - cwTextLength }}</div>
+		<button class="_button" :class="$style.cwSwapButton" @click="swapCwText">
+			<i class="ti ti-switch-vertical"></i>
+		</button>
 	</div>
 	<div :class="[$style.textOuter, { [$style.withCw]: useCw, [$style.showForm]: !showForm }]">
 		<div v-if="targetChannel" :class="$style.colorBar" :style="{ background: targetChannel.color }"></div>
 		<textarea ref="textareaEl" v-model="text" :class="[$style.text]" :disabled="posting || posted" :readonly="textAreaReadOnly" :placeholder="placeholder" data-cy-post-form-text @click="formClick" @keydown="onKeydown" @keyup="onKeyup" @paste="onPaste" @compositionupdate="onCompositionUpdate" @compositionend="onCompositionEnd"/>
 		<div v-if="maxTextLength - textLength < 100" :class="['_acrylic', $style.textCount, { [$style.textOver]: textLength > maxTextLength }]">{{ maxTextLength - textLength }}</div>
-		<div v-if="!showForm" style="position: absolute; bottom: 0; right: 12px;" :class="$style.submit">
-			<button v-click-anime class="_button" :class="$style.submitButton" :disabled="!canPost && $i" data-cy-open-post-form-submit @click="$i ? post : signin()">
-				<div :class="$style.submitInner">
-					<template v-if="posted"></template>
-					<template v-else-if="posting"><MkEllipsis/></template>
-					<template v-else>{{ submitText }}</template>
-					<i v-if="$i" style="margin-left: 6px;" :class="posted ? 'ti ti-check' : saveAsDraft ? 'ti ti-pencil-minus' : replyTargetNote ? 'ti ti-arrow-back-up' : renoteTargetNote ? 'ti ti-quote' : updateMode ? 'ti ti-pencil' : defaultStore.state.renameTheButtonInPostFormToNya ? 'ti ti-paw-filled' : 'ti ti-send'"></i>
-				</div>
-			</button>
-		</div>
 	</div>
-	<input v-show="withHashtags && showForm" ref="hashtagsInputEl" v-model="hashtags" :class="$style.hashtags" :placeholder="i18n.ts.hashtags" list="hashtags">
-	<XPostFormAttaches v-if="showForm" v-model="files" @detach="detachFile" @changeSensitive="updateFileSensitive" @changeName="updateFileName" @replaceFile="replaceFile"/>
-	<MkPollEditor v-if="poll && showForm" v-model="poll" @destroyed="poll = null"/>
-	<MkSchedulePostEditor v-if="scheduleNote" v-model="scheduleNote" @destroyed="scheduleNote = null"/>
+	<div v-show="withHashtags && showForm" :class="$style.hashtags">
+		<button v-tooltip="i18n.ts.hideTagUiTag" class="_button" :class="[$style.footerButton, { [$style.footerButtonActive]: hideTag }]" @click="hideTag = !hideTag"><i class="ti ti-eye-off"></i></button>
+		<input v-show="withHashtags && showForm" ref="hashtagsInputEl" v-model="hashtags" :class="$style.hashtags" :placeholder="i18n.ts.hashtags" list="hashtags">
+	</div>
+	<XPostFormAttaches v-if="showForm" v-model="files" @detach="detachFile" @changeSensitive="updateFileSensitive" @changeName="updateFileName"/>
+	<div v-if="uploader.items.value.length > 0" style="padding: 12px;">
+		<MkTip k="postFormUploader" style="margin-bottom: 10px;">
+			{{ i18n.ts._postForm.uploaderTip }}
+		</MkTip>
+		<MkUploaderItems :items="uploader.items.value" @showMenu="(item, ev) => showPerUploadItemMenu(item, ev)" @showMenuViaContextmenu="(item, ev) => showPerUploadItemMenuViaContextmenu(item, ev)"/>
+	</div>
+	<MkPollEditor v-if="poll && !props.updateMode && showForm" v-model="poll" @destroyed="poll = null"/>
 	<MkScheduledNoteDelete v-if="scheduledNoteDelete" v-model="scheduledNoteDelete" @destroyed="scheduledNoteDelete = null"/>
 	<MkNotePreview v-if="showPreview && showForm && textLength > 0" :class="$style.preview" :text="text" :files="files" :poll="poll ?? undefined" :useCw="useCw" :cw="cw" :user="postAccount ?? $i" :showProfile="showProfilePreview"/>
 	<div v-if="showingOptions && showForm" style="padding: 8px 16px;">
 	</div>
 	<Transition
-		:enterActiveClass="defaultStore.state.animation ? $style.transition_footer_enterActive : ''"
-		:enterFromClass="defaultStore.state.animation ? $style.transition_footer_enterFrom : ''"
+		:enterActiveClass="prefer.s.animation ? $style.transition_footer_enterActive : ''"
+		:enterFromClass="prefer.s.animation ? $style.transition_footer_enterFrom : ''"
 	>
 		<footer v-if="showForm" :class="$style.footer">
 			<div :class="$style.footerLeft">
-				<button v-tooltip="i18n.ts.attachFile" class="_button" :class="$style.footerButton" @click="chooseFileFrom"><i class="ti ti-photo-plus"></i></button>
-				<button v-tooltip="i18n.ts.poll" class="_button" :class="[$style.footerButton, { [$style.footerButtonActive]: poll }]" @click="togglePoll"><i class="ti ti-chart-arrows"></i></button>
+				<button v-tooltip="i18n.ts.attachFile + ' (' + i18n.ts.upload + ')'" class="_button" :class="$style.footerButton" @click="chooseFileFromPc"><i class="ti ti-photo-plus"></i></button>
+				<button v-tooltip="i18n.ts.attachFile + ' (' + i18n.ts.fromDrive + ')'" class="_button" :class="$style.footerButton" @click="chooseFileFromDrive"><i class="ti ti-cloud-download"></i></button>
+				<button v-if="!props.updateMode" v-tooltip="i18n.ts.poll" class="_button" :class="[$style.footerButton, { [$style.footerButtonActive]: poll }]" @click="togglePoll"><i class="ti ti-chart-arrows"></i></button>
 				<button v-tooltip="i18n.ts.useCw" class="_button" :class="[$style.footerButton, { [$style.footerButtonActive]: useCw }]" @click="useCw = !useCw"><i class="ti ti-eye-off"></i></button>
-				<button v-tooltip="i18n.ts.mention" class="_button" :class="$style.footerButton" @click="insertMention"><i class="ti ti-at"></i></button>
 				<button v-tooltip="i18n.ts.hashtags" class="_button" :class="[$style.footerButton, { [$style.footerButtonActive]: withHashtags }]" @click="withHashtags = !withHashtags"><i class="ti ti-hash"></i></button>
+				<button v-tooltip="i18n.ts.mention" class="_button" :class="$style.footerButton" @click="insertMention"><i class="ti ti-at"></i></button>
+				<button v-tooltip="i18n.ts.event" class="_button" :class="$style.footerButton" @click="toggleEvent"><i class="ti ti-calendar"></i></button>
+				<button v-if="showAddMfmFunction" v-tooltip="i18n.ts.addMfmFunction" class="_button" :class="$style.footerButton" @click="insertMfmFunction"><i class="ti ti-palette"></i></button>
 				<button v-if="postFormActions.length > 0" v-tooltip="i18n.ts.plugins" class="_button" :class="$style.footerButton" @click="showActions"><i class="ti ti-plug"></i></button>
-				<button v-tooltip="i18n.ts.emoji" :class="['_button', $style.footerButton]" @click="insertEmoji"><i class="ti ti-mood-happy"></i></button>
-				<button v-if="showAddMfmFunction" v-tooltip="i18n.ts.addMfmFunction" :class="['_button', $style.footerButton]" @click="insertMfmFunction"><i class="ti ti-palette"></i></button>
-				<button v-tooltip="i18n.ts.otherSettings" :class="['_button', $style.footerButton]" @click="showOtherMenu"><i class="ti ti-dots"></i></button>
 			</div>
 			<div :class="$style.footerRight">
-				<button v-tooltip="i18n.ts.previewNoteText" class="_button" :class="$style.footerButton" @click="showPreviewMenu"><i class="ti ti-eye"></i></button>
-				<!--<button v-tooltip="i18n.ts.more" class="_button" :class="$style.footerButton" @click="showingOptions = !showingOptions"><i class="ti ti-dots"></i></button>-->
+				<button v-tooltip="i18n.ts.emoji" :class="['_button', $style.footerButton]" @click="insertEmoji"><i class="ti ti-mood-happy"></i></button>
 			</div>
 		</footer>
 	</Transition>
@@ -127,7 +141,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { inject, watch, nextTick, onMounted, defineAsyncComponent, provide, shallowRef, ref, computed } from 'vue';
+import { inject, watch, nextTick, onMounted, defineAsyncComponent, provide, shallowRef, ref, computed, useTemplateRef, onUnmounted } from 'vue';
 import * as mfm from 'mfc-js';
 import * as Misskey from 'cherrypick-js';
 import insertTextAtCursor from 'insert-text-at-cursor';
@@ -135,42 +149,51 @@ import { toASCII } from 'punycode.js';
 import autosize from 'autosize';
 import { host, url } from '@@/js/config.js';
 import { erase, unique } from '@@/js/array.js';
+import MkUploaderItems from './MkUploaderItems.vue';
 import type { ShallowRef } from 'vue';
-import type { MenuItem } from '@/types/menu.js';
 import type { PostFormProps } from '@/types/post-form.js';
+import type { MenuItem } from '@/types/menu.js';
 import type { PollEditorModelValue } from '@/components/MkPollEditor.vue';
+import type { UploaderItem } from '@/composables/use-uploader.js';
 import type { DeleteScheduleEditorModelValue } from '@/components/MkScheduledNoteDelete.vue';
+import { parseMfmCached } from '@/utility/mfm-cache.js';
 import MkNotePreview from '@/components/MkNotePreview.vue';
 import XPostFormAttaches from '@/components/MkPostFormAttaches.vue';
+import XTextCounter from '@/components/MkPostForm.TextCounter.vue';
+import XSigninDialog from '@/components/MkSigninDialog.vue';
 import MkPollEditor from '@/components/MkPollEditor.vue';
 import MkEventEditor from '@/components/MkEventEditor.vue';
 import MkScheduledNoteDelete from '@/components/MkScheduledNoteDelete.vue';
-import MkSchedulePostEditor from '@/components/MkSchedulePostEditor.vue';
-import { extractMentions } from '@/scripts/extract-mentions.js';
-import { formatTimeString } from '@/scripts/format-time-string.js';
-import { Autocomplete } from '@/scripts/autocomplete.js';
+import { extractMentions } from '@/utility/extract-mentions.js';
+import { formatTimeString } from '@/utility/format-time-string.js';
+import { Autocomplete } from '@/utility/autocomplete.js';
 import * as os from '@/os.js';
-import { misskeyApi } from '@/scripts/misskey-api.js';
-import { selectFiles } from '@/scripts/select-file.js';
-import { defaultStore, notePostInterruptors, postFormActions } from '@/store.js';
+import { misskeyApi } from '@/utility/misskey-api.js';
+import { chooseDriveFile } from '@/utility/drive.js';
+import { store } from '@/store.js';
 import MkInfo from '@/components/MkInfo.vue';
 import { i18n } from '@/i18n.js';
 import { instance } from '@/instance.js';
-import { signinRequired, notesCount, incNotesCount, getAccounts, openAccountMenu as openAccountMenu_ } from '@/account.js';
-import { uploadFile } from '@/scripts/upload.js';
-import { deepClone } from '@/scripts/clone.js';
+import { ensureSignin, notesCount, incNotesCount } from '@/i.js';
+import { getAccounts, getAccountMenu } from '@/accounts.js';
+import { deepClone } from '@/utility/clone.js';
 import MkRippleEffect from '@/components/MkRippleEffect.vue';
 import { miLocalStorage } from '@/local-storage.js';
-import { claimAchievement } from '@/scripts/achievements.js';
-import { emojiPicker } from '@/scripts/emoji-picker.js';
-import { vibrate } from '@/scripts/vibrate.js';
-import XSigninDialog from '@/components/MkSigninDialog.vue';
-import * as sound from '@/scripts/sound.js';
-import { mfmFunctionPicker } from '@/scripts/mfm-function-picker.js';
+import { claimAchievement } from '@/utility/achievements.js';
+import { emojiPicker } from '@/utility/emoji-picker.js';
+import { mfmFunctionPicker } from '@/utility/mfm-function-picker.js';
+import { prefer } from '@/preferences.js';
+import { getPluginHandlers } from '@/plugin.js';
+import { DI } from '@/di.js';
+import { globalEvents } from '@/events.js';
+import { checkDragDataType, getDragData } from '@/drag-and-drop.js';
+import { useUploader } from '@/composables/use-uploader.js';
+import { haptic } from '@/utility/haptic.js';
+import * as sound from '@/utility/sound.js';
 
-const $i = signinRequired();
+const $i = ensureSignin();
 
-const modal = inject('modal');
+const modal = inject(DI.inModal, false);
 
 const props = withDefaults(defineProps<PostFormProps & {
 	fixed?: boolean;
@@ -184,7 +207,7 @@ const props = withDefaults(defineProps<PostFormProps & {
 	initialLocalOnly: undefined,
 });
 
-provide('mock', props.mock);
+provide(DI.mock, props.mock);
 
 const emit = defineEmits<{
 	(ev: 'posted'): void;
@@ -195,64 +218,75 @@ const emit = defineEmits<{
 	(ev: 'fileChangeSensitive', fileId: string, to: boolean): void;
 }>();
 
-const textareaEl = shallowRef<HTMLTextAreaElement | null>(null);
-const cwInputEl = shallowRef<HTMLInputElement | null>(null);
-const hashtagsInputEl = shallowRef<HTMLInputElement | null>(null);
-const visibilityButton = shallowRef<HTMLElement>();
-const otherSettingsButton = shallowRef<HTMLElement>();
-const searchbilityButton = shallowRef<HTMLElement>();
+const textareaEl = useTemplateRef('textareaEl');
+const cwInputEl = useTemplateRef('cwInputEl');
+const hashtagsInputEl = useTemplateRef('hashtagsInputEl');
+const visibilityButton = useTemplateRef('visibilityButton');
+const otherSettingsButton = useTemplateRef('otherSettingsButton');
+const searchbilityButton = useTemplateRef('searchbilityButton');
 
 const showForm = ref(false);
 
 const posting = ref(false);
 const posted = ref(false);
 const text = ref(props.initialText ?? '');
-const files = ref(props.initialFiles ?? ([] as Misskey.entities.DriveFile[]));
+const files = ref(props.initialFiles ?? []);
 const poll = ref<PollEditorModelValue | null>(null);
-const event = ref<{
-	title: string;
-	start: string;
-	end: string | null;
-	metadata: Record<string, string>;
-} | null>(null);
+const event = ref<any>(null);
 const useCw = ref<boolean>(!!props.initialCw);
-const showPreview = ref(defaultStore.state.showPreview);
-const showProfilePreview = ref(defaultStore.state.showProfilePreview);
-watch(showPreview, () => defaultStore.set('showPreview', showPreview.value));
-watch(showProfilePreview, () => defaultStore.set('showProfilePreview', showProfilePreview.value));
-const showAddMfmFunction = ref(defaultStore.state.enableQuickAddMfmFunction);
-watch(showAddMfmFunction, () => defaultStore.set('enableQuickAddMfmFunction', showAddMfmFunction.value));
+const showPreview = ref(prefer.s.showPreview);
+const showProfilePreview = ref(prefer.s.showProfilePreview);
+watch(showPreview, () => prefer.commit('showPreview', showPreview.value));
+watch(showProfilePreview, () => prefer.commit('showProfilePreview', showProfilePreview.value));
+const showAddMfmFunction = ref(prefer.s.enableQuickAddMfmFunction);
+watch(showAddMfmFunction, () => prefer.commit('enableQuickAddMfmFunction', showAddMfmFunction.value));
 const cw = ref<string | null>(props.initialCw ?? null);
-const visibility = ref(props.initialVisibility ?? (defaultStore.state.rememberNoteVisibility ? defaultStore.state.visibility : defaultStore.state.defaultNoteVisibility));
-const searchableBy = ref(defaultStore.state.rememberNoteSearchbility ? defaultStore.state.searchbility : defaultStore.state.defaultNoteSearchbility);
+const visibility = ref(props.initialVisibility ?? (prefer.s.rememberNoteVisibility ? store.s.visibility : prefer.s.defaultNoteVisibility));
+const searchableBy = ref(prefer.s.rememberNoteSearchbility ? prefer.s.searchbility : prefer.s.defaultNoteSearchbility);
 const visibleUsers = ref<Misskey.entities.UserDetailed[]>([]);
 if (props.initialVisibleUsers) {
 	props.initialVisibleUsers.forEach(u => pushVisibleUser(u));
 }
-const reactionAcceptance = ref(defaultStore.state.reactionAcceptance);
-const autocomplete = ref(null);
+const reactionAcceptance = ref(store.s.reactionAcceptance);
+const scheduledAt = ref<number | null>(null);
 const draghover = ref(false);
 const quoteId = ref<string | null>(null);
 const hasNotSpecifiedMentions = ref(false);
-const hideTag = computed(() => {
-	return defaultStore.state.hideTagUiTags;
-});
+const hideTag = ref(prefer.s.hideTagUiTags);
+watch(hideTag, () => prefer.commit('hideTagUiTags', hideTag.value));
 const recentHashtags = ref(JSON.parse(miLocalStorage.getItem('hashtags') ?? '[]'));
 const imeText = ref('');
 const showingOptions = ref(false);
 const disableRightClick = ref(false);
-const saveAsDraft = ref(false);
+const saveToDraft = ref(false);
 const textAreaReadOnly = ref(false);
 const justEndedComposition = ref(false);
 const renoteTargetNote: ShallowRef<PostFormProps['renote'] | null> = shallowRef(props.renote);
 const replyTargetNote: ShallowRef<PostFormProps['reply'] | null> = shallowRef(props.reply);
 const targetChannel = shallowRef(props.channel);
-const scheduledNoteDelete = ref<DeleteScheduleEditorModelValue | null>(null);
-const scheduleNote = ref<{
-	scheduledAt: number | null;
-} | null>(null);
 
 const serverDraftId = ref<string | null>(null);
+const postFormActions = getPluginHandlers('post_form_action');
+
+const scheduledNoteDelete = ref<DeleteScheduleEditorModelValue | null>(null);
+const scheduledDeleteAt = computed(() => {
+	if (scheduledNoteDelete.value?.deleteAt) return scheduledNoteDelete.value.deleteAt;
+	else if (scheduledNoteDelete.value?.deleteAfter) return Date.now() + scheduledNoteDelete.value.deleteAfter;
+	return null;
+});
+
+const uploader = useUploader({
+	multiple: true,
+});
+
+onUnmounted(() => {
+	uploader.dispose();
+});
+
+uploader.events.on('itemUploaded', ctx => {
+	files.value.push(ctx.item.uploaded!);
+	uploader.removeItem(ctx.item);
+});
 
 const draftKey = computed((): string => {
 	let key = targetChannel.value ? `channel:${targetChannel.value.id}` : '';
@@ -296,17 +330,23 @@ const placeholder = computed((): string => {
 const submitText = computed((): string => {
 	return !$i
 		? i18n.ts.login
-		: saveAsDraft.value
+		: saveToDraft.value
 			? i18n.ts.draft
-			: renoteTargetNote.value
-				? i18n.ts.quote
-				: replyTargetNote.value
-					? i18n.ts.reply
-					: props.updateMode
-						? i18n.ts.edit
-						: defaultStore.state.renameTheButtonInPostFormToNya
-							? i18n.ts.nya
-							: i18n.ts.note;
+			: scheduledAt.value != null
+				? i18n.ts.schedule
+				: renoteTargetNote.value
+					? i18n.ts.quote
+					: replyTargetNote.value
+						? i18n.ts.reply
+						: props.updateMode
+							? i18n.ts.edit
+							: prefer.s.renameTheButtonInPostFormToNya
+								? i18n.ts.nya
+								: i18n.ts.note;
+});
+
+const submitIcon = computed((): string => {
+	return posted.value ? 'ti ti-check' : scheduledAt.value != null ? 'ti ti-calendar-time' : saveToDraft.value ? 'ti ti-pencil-minus' : replyTargetNote.value ? 'ti ti-arrow-back-up' : renoteTargetNote.value ? 'ti ti-quote' : props.updateMode ? 'ti ti-pencil' : prefer.s.renameTheButtonInPostFormToNya ? 'ti ti-paw-filled' : 'ti ti-send';
 });
 
 const textLength = computed((): number => {
@@ -324,23 +364,35 @@ const cwTextLength = computed((): number => {
 const maxCwTextLength = 100;
 
 const canPost = computed((): boolean => {
-	return !props.mock && !posting.value && !posted.value &&
+	return !props.mock && !posting.value && !posted.value && !uploader.uploading.value && (uploader.items.value.length === 0 || uploader.readyForUpload.value) &&
 		(
 			1 <= textLength.value ||
 			1 <= files.value.length ||
+			1 <= uploader.items.value.length ||
 			poll.value != null ||
 			event.value != null ||
 			renoteTargetNote.value != null ||
 			quoteId.value != null
 		) &&
 		(textLength.value <= maxTextLength.value) &&
-		(cwTextLength.value <= maxCwTextLength) &&
+		(
+			useCw.value ?
+				(
+					cw.value != null && cw.value.trim() !== '' &&
+					cwTextLength.value <= maxCwTextLength
+				) : true
+		) &&
 		(files.value.length <= 16) &&
 		(!poll.value || poll.value.choices.length >= 2);
 });
 
-const withHashtags = computed(defaultStore.makeGetterSetter('postFormWithHashtags'));
-const hashtags = computed(defaultStore.makeGetterSetter('postFormHashtags'));
+// cannot save pure renote as draft
+const canSaveAsServerDraft = computed((): boolean => {
+	return canPost.value && (textLength.value > 0 || files.value.length > 0 || poll.value != null || event.value != null);
+});
+
+const withHashtags = computed(store.makeGetterSetter('postFormWithHashtags'));
+const hashtags = computed(store.makeGetterSetter('postFormHashtags'));
 
 watch(text, () => {
 	checkMissingMention();
@@ -393,7 +445,7 @@ if (props.specified) {
 }
 
 // keep cw when reply
-if (defaultStore.state.keepCw && replyTargetNote.value && replyTargetNote.value.cw) {
+if (prefer.s.keepCw && replyTargetNote.value && replyTargetNote.value.cw) {
 	useCw.value = true;
 	cw.value = replyTargetNote.value.cw;
 }
@@ -403,7 +455,7 @@ function watchForDraft() {
 	watch(useCw, () => saveDraft());
 	watch(cw, () => saveDraft());
 	watch(disableRightClick, () => saveDraft());
-	watch(saveAsDraft, () => saveDraft());
+	watch(saveToDraft, () => saveDraft());
 	watch(poll, () => saveDraft());
 	watch(event, () => saveDraft());
 	watch(files, () => saveDraft(), { deep: true });
@@ -411,13 +463,13 @@ function watchForDraft() {
 	watch(searchableBy, () => saveDraft());
 	watch(quoteId, () => saveDraft());
 	watch(reactionAcceptance, () => saveDraft());
+	watch(scheduledAt, () => saveDraft());
 	watch(scheduledNoteDelete, () => saveDraft());
-	watch(scheduleNote, () => saveDraft());
 }
 
 function checkMissingMention() {
 	if (visibility.value === 'specified') {
-		const ast = mfm.parse(text.value);
+		const ast = parseMfmCached(text.value);
 
 		for (const x of extractMentions(ast)) {
 			if (!visibleUsers.value.some(u => (u.username === x.username) && (u.host === x.host))) {
@@ -430,7 +482,7 @@ function checkMissingMention() {
 }
 
 function addMissingMention() {
-	const ast = mfm.parse(text.value);
+	const ast = parseMfmCached(text.value);
 
 	for (const x of extractMentions(ast)) {
 		if (!visibleUsers.value.some(u => (u.username === x.username) && (u.host === x.host))) {
@@ -438,6 +490,15 @@ function addMissingMention() {
 				pushVisibleUser(user);
 			});
 		}
+	}
+}
+
+function swapCwText() {
+	if (useCw.value) {
+		// textの一行目を取り出す
+		const temp = text.value.split(/\r?\n/).join(' ');
+		text.value = cw.value ?? '';
+		cw.value = temp;
 	}
 }
 
@@ -460,9 +521,9 @@ function toggleEvent() {
 	} else {
 		event.value = {
 			title: '',
-			start: (new Date()).toString(),
+			start: (new Date()).getTime(),
 			end: null,
-			metadata: {},
+			metadata: {} as Record<string, never>,
 		};
 	}
 }
@@ -478,13 +539,20 @@ function focus() {
 	}
 }
 
-function chooseFileFrom(ev) {
+function chooseFileFromPc(ev: MouseEvent) {
 	if (props.mock) return;
 
-	selectFiles(ev.currentTarget ?? ev.target, i18n.ts.attachFile).then(files_ => {
-		for (const file of files_) {
-			files.value.push(file);
-		}
+	os.chooseFileFromPc({ multiple: true }).then(files => {
+		if (files.length === 0) return;
+		uploader.addFiles(files);
+	});
+}
+
+function chooseFileFromDrive(ev: MouseEvent) {
+	if (props.mock) return;
+
+	chooseDriveFile({ multiple: true }).then(driveFiles => {
+		files.value.push(...driveFiles);
 	});
 }
 
@@ -503,29 +571,17 @@ function updateFileName(file, name) {
 	files.value[files.value.findIndex(x => x.id === file.id)].name = name;
 }
 
-function replaceFile(file: Misskey.entities.DriveFile, newFile: Misskey.entities.DriveFile): void {
-	files.value[files.value.findIndex(x => x.id === file.id)] = newFile;
-}
-
-function upload(file: File, name?: string): void {
-	if (props.mock) return;
-
-	uploadFile(file, defaultStore.state.uploadFolder, name).then(res => {
-		files.value.push(res);
-	});
-}
-
 function setVisibility() {
 	const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkVisibilityPicker.vue')), {
 		currentVisibility: visibility.value,
 		isSilenced: $i.isSilenced,
-		src: visibilityButton.value,
+		anchorElement: visibilityButton.value,
 		...(replyTargetNote.value ? { isReplyVisibilitySpecified: replyTargetNote.value.visibility === 'specified' } : {}),
 	}, {
 		changeVisibility: v => {
 			visibility.value = v;
-			if (defaultStore.state.rememberNoteVisibility) {
-				defaultStore.set('visibility', visibility.value);
+			if (prefer.s.rememberNoteVisibility) {
+				store.set('visibility', visibility.value);
 			}
 		},
 		closed: () => dispose(),
@@ -535,12 +591,13 @@ function setVisibility() {
 function setSearchbility() {
 	const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/CPSearchbilityPicker.vue')), {
 		currentSearchbility: searchableBy.value,
-		src: searchbilityButton.value,
+		anchorElement: searchbilityButton.value ?? undefined,
+		src: searchbilityButton.value ?? undefined,
 	}, {
 		changeSearchbility: v => {
 			searchableBy.value = v;
-			if (defaultStore.state.rememberNoteSearchbility) {
-				defaultStore.set('searchbility', searchableBy .value);
+			if (prefer.s.rememberNoteSearchbility) {
+				store.set('searchbility', searchableBy .value);
 			}
 		},
 		closed: () => dispose(),
@@ -551,11 +608,11 @@ async function toggleReactionAcceptance() {
 	const select = await os.select({
 		title: i18n.ts.reactionAcceptance,
 		items: [
-			{ value: null, text: i18n.ts.all },
-			{ value: 'likeOnlyForRemote' as const, text: i18n.ts.likeOnlyForRemote },
-			{ value: 'nonSensitiveOnly' as const, text: i18n.ts.nonSensitiveOnly },
-			{ value: 'nonSensitiveOnlyForLocalLikeOnlyForRemote' as const, text: i18n.ts.nonSensitiveOnlyForLocalLikeOnlyForRemote },
-			{ value: 'likeOnly' as const, text: i18n.ts.likeOnly },
+			{ value: null, label: i18n.ts.all },
+			{ value: 'likeOnlyForRemote' as const, label: i18n.ts.likeOnlyForRemote },
+			{ value: 'nonSensitiveOnly' as const, label: i18n.ts.nonSensitiveOnly },
+			{ value: 'nonSensitiveOnlyForLocalLikeOnlyForRemote' as const, label: i18n.ts.nonSensitiveOnlyForLocalLikeOnlyForRemote },
+			{ value: 'likeOnly' as const, label: i18n.ts.likeOnly },
 		],
 		default: reactionAcceptance.value,
 	});
@@ -575,28 +632,64 @@ function showOtherSettings() {
 
 	const menuItems:MenuItem[] = [];
 	menuItems.push({
+		type: 'component',
+		component: XTextCounter,
+		props: {
+			textLength: textLength,
+		},
+	}, { type: 'divider' }, {
 		icon: reactionAcceptanceIcon,
 		text: i18n.ts.reactionAcceptance,
 		action: () => {
 			toggleReactionAcceptance();
 		},
-	});
-
-	if ($i.policies.noteDraftLimit > 0) {
-		menuItems.push({ type: 'divider' }, {
-			type: 'switch',
-			text: i18n.ts.saveAsDraft,
-			icon: 'ti ti-pencil-minus',
-			ref: saveAsDraft,
-		});
-	}
-	menuItems.push({ type: 'divider' }, {
+	}, { type: 'divider' }, /*{
+		type: 'button',
+		text: i18n.ts._drafts.saveToDraft,
+		icon: 'ti ti-cloud-upload',
+		action: async () => {
+			if (!canSaveAsServerDraft.value) {
+				return os.alert({
+					type: 'error',
+					text: i18n.ts._drafts.cannotCreateDraft,
+				});
+			}
+			saveServerDraft();
+		},
+	}, */...($i.policies.scheduledNoteLimit > 0 ? [{
+		icon: 'ti ti-calendar-time',
+		text: i18n.ts.schedulePost + '...',
+		action: () => {
+			schedule();
+		},
+	}] : []), {
+		icon: 'ti ti-clock-hour-9',
+		text: i18n.ts.scheduledNoteDelete + '...',
+		action: () => {
+			toggleScheduledNoteDelete();
+		},
+	}, { type: 'divider' }, {
 		icon: 'ti ti-help-circle',
 		text: i18n.ts._mfc.cheatSheet,
 		action: () => {
 			openMfmCheatSheet();
 		},
 	}, { type: 'divider' }, {
+		type: 'parent',
+		icon: 'ti ti-eye',
+		text: i18n.ts.preview,
+		children: [{
+			type: 'switch',
+			text: i18n.ts.previewNoteText,
+			icon: 'ti ti-eye',
+			ref: showPreview,
+		}, {
+			type: 'switch',
+			text: i18n.ts.previewNoteProfile,
+			icon: 'ti ti-user-circle',
+			ref: showProfilePreview,
+		}],
+	}, {
 		icon: 'ti ti-trash',
 		text: i18n.ts.reset,
 		danger: true,
@@ -610,13 +703,7 @@ function showOtherSettings() {
 			clear();
 		},
 	});
-	const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkPostFormOtherMenu.vue')), {
-		items: menuItems,
-		textLength: textLength.value,
-		src: otherSettingsButton.value,
-	}, {
-		closed: () => dispose(),
-	});
+	os.popupMenu(menuItems, otherSettingsButton.value);
 }
 //#endregion
 
@@ -646,20 +733,20 @@ function clear() {
 	poll.value = null;
 	event.value = null;
 	quoteId.value = null;
-	scheduleNote.value = null;
+	scheduledAt.value = null;
 	scheduledNoteDelete.value = null;
-	saveAsDraft.value = false;
+	saveToDraft.value = false;
 	disableRightClick.value = false;
 }
 
 function onKeydown(ev: KeyboardEvent) {
-	if (defaultStore.state.useEnterToSend && !ev.shiftKey) {
+	if (prefer.s.useEnterToSend && !ev.shiftKey) {
 		if (ev.key === 'Enter' && canPost.value) post();
 	} else {
 		if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && canPost.value) post();
 	}
 
-	if (defaultStore.state.postFormVisibilityHotkey) {
+	if (prefer.s.postFormVisibilityHotkey) {
 		if (ev.ctrlKey && ev.shiftKey && (visibility.value === 'specified')) visibility.value = 'public';
 		else if (ev.ctrlKey && ev.shiftKey && (visibility.value === 'public')) visibility.value = 'home';
 		else if (ev.ctrlKey && ev.shiftKey && (visibility.value === 'home')) visibility.value = 'followers';
@@ -684,19 +771,28 @@ function onCompositionEnd(ev: CompositionEvent) {
 	justEndedComposition.value = true;
 }
 
+const pastedFileName = 'yyyy-MM-dd HH-mm-ss [{{number}}]';
+
 async function onPaste(ev: ClipboardEvent) {
 	if (props.mock) return;
 	if (!ev.clipboardData) return;
 
+	let pastedFiles: File[] = [];
 	for (const { item, i } of Array.from(ev.clipboardData.items, (data, x) => ({ item: data, i: x }))) {
 		if (item.kind === 'file') {
 			const file = item.getAsFile();
 			if (!file) continue;
 			const lio = file.name.lastIndexOf('.');
 			const ext = lio >= 0 ? file.name.slice(lio) : '';
-			const formatted = `${formatTimeString(new Date(file.lastModified), defaultStore.state.pastedFileName).replace(/{{number}}/g, `${i + 1}`)}${ext}`;
-			upload(file, formatted);
+			const formattedName = `${formatTimeString(new Date(file.lastModified), pastedFileName).replace(/{{number}}/g, `${i + 1}`)}${ext}`;
+			const renamedFile = new File([file], formattedName, { type: file.type });
+			pastedFiles.push(renamedFile);
 		}
+	}
+	if (pastedFiles.length > 0) {
+		ev.preventDefault();
+		uploader.addFiles(pastedFiles);
+		return;
 	}
 
 	const paste = ev.clipboardData.getData('text');
@@ -728,9 +824,9 @@ async function onPaste(ev: ClipboardEvent) {
 				return;
 			}
 
-			const fileName = formatTimeString(new Date(), defaultStore.state.pastedFileName).replace(/{{number}}/g, '0');
+			const fileName = formatTimeString(new Date(), pastedFileName).replace(/{{number}}/g, '0');
 			const file = new File([paste], `${fileName}.txt`, { type: 'text/plain' });
-			upload(file, `${fileName}.txt`);
+			uploader.addFiles([file]);
 		});
 	}
 }
@@ -738,8 +834,7 @@ async function onPaste(ev: ClipboardEvent) {
 function onDragover(ev) {
 	if (!ev.dataTransfer.items[0]) return;
 	const isFile = ev.dataTransfer.items[0].kind === 'file';
-	const isDriveFile = ev.dataTransfer.types[0] === _DATA_TRANSFER_DRIVE_FILE_;
-	if (isFile || isDriveFile) {
+	if (isFile || checkDragDataType(ev, ['driveFiles'])) {
 		ev.preventDefault();
 		draghover.value = true;
 		switch (ev.dataTransfer.effectAllowed) {
@@ -775,16 +870,17 @@ function onDrop(ev: DragEvent): void {
 	// ファイルだったら
 	if (ev.dataTransfer && ev.dataTransfer.files.length > 0) {
 		ev.preventDefault();
-		for (const x of Array.from(ev.dataTransfer.files)) upload(x);
+		uploader.addFiles(Array.from(ev.dataTransfer.files));
 		return;
 	}
 
 	//#region ドライブのファイル
-	const driveFile = ev.dataTransfer?.getData(_DATA_TRANSFER_DRIVE_FILE_);
-	if (driveFile != null && driveFile !== '') {
-		const file = JSON.parse(driveFile);
-		files.value.push(file);
-		ev.preventDefault();
+	{
+		const droppedData = getDragData(ev, 'driveFiles');
+		if (droppedData != null) {
+			files.value.push(...droppedData);
+			ev.preventDefault();
+		}
 	}
 	//#endregion
 }
@@ -801,7 +897,7 @@ function saveDraft() {
 			useCw: useCw.value,
 			cw: cw.value,
 			disableRightClick: disableRightClick.value,
-			saveAsDraft: text.value === '' ? false : saveAsDraft.value,
+			saveToDraft: text.value === '' ? false : saveToDraft.value,
 			visibility: visibility.value,
 			searchableBy: searchableBy.value,
 			files: files.value,
@@ -810,8 +906,8 @@ function saveDraft() {
 			...( visibleUsers.value.length > 0 ? { visibleUserIds: visibleUsers.value.map(x => x.id) } : {}),
 			quoteId: quoteId.value,
 			reactionAcceptance: reactionAcceptance.value,
+			scheduledAt: scheduledAt.value,
 			scheduledNoteDelete: scheduledNoteDelete.value,
-			scheduleNote: scheduleNote.value,
 		},
 	};
 
@@ -826,6 +922,35 @@ function deleteDraft() {
 	miLocalStorage.setItem('drafts', JSON.stringify(draftData));
 }
 
+async function saveServerDraft(options: {
+	isActuallyScheduled?: boolean;
+} = {}) {
+	return await misskeyApi(serverDraftId.value == null ? 'notes/drafts/create' : 'notes/drafts/update', {
+		...(serverDraftId.value == null ? {} : { draftId: serverDraftId.value }),
+		text: text.value,
+		cw: useCw.value ? cw.value || null : null,
+		disableRightClick: disableRightClick.value,
+		visibility: visibility.value,
+		hashtag: hashtags.value,
+		fileIds: files.value.map(f => f.id),
+		poll: poll.value,
+		event: event.value,
+		visibleUserIds: visibleUsers.value.map(x => x.id),
+		renoteId: renoteTargetNote.value ? renoteTargetNote.value.id : quoteId.value ? quoteId.value : null,
+		replyId: replyTargetNote.value ? replyTargetNote.value.id : null,
+		channelId: targetChannel.value ? targetChannel.value.id : null,
+		reactionAcceptance: reactionAcceptance.value,
+		scheduledAt: scheduledAt.value,
+		isActuallyScheduled: options.isActuallyScheduled ?? false,
+		scheduledDelete: scheduledNoteDelete.value,
+	}).then(() => {
+		if (scheduledAt.value != null && options.isActuallyScheduled === true) os.toast(i18n.ts.createSchedulePost, 'scheduled');
+		else os.toast(i18n.ts.noteDrafted, 'drafted');
+		clear();
+		emit('posted');
+	});
+}
+
 function isAnnoying(text: string): boolean {
 	return text.includes('$[x2') ||
 		text.includes('$[x3') ||
@@ -834,49 +959,20 @@ function isAnnoying(text: string): boolean {
 		text.includes('$[position');
 }
 
-async function saveServerDraft(clearLocal = false): Promise<{ canClosePostForm: boolean }> {
-	return await misskeyApi(serverDraftId.value == null ? 'notes/drafts/create' : 'notes/drafts/update', {
-		...(serverDraftId.value == null ? {} : { draftId: serverDraftId.value }),
-		text: text.value,
-		useCw: useCw.value,
-		cw: cw.value,
-		disableRightClick: disableRightClick.value,
-		visibility: visibility.value,
-		hashtag: hashtags.value,
-		...(files.value.length > 0 ? { fileIds: files.value.map(f => f.id) } : {}),
-		poll: poll.value,
-		event: event.value,
-		...(visibleUsers.value.length > 0 ? { visibleUserIds: visibleUsers.value.map(x => x.id) } : {}),
-		renoteId: renoteTargetNote.value ? renoteTargetNote.value.id : undefined,
-		replyId: replyTargetNote.value ? replyTargetNote.value.id : undefined,
-		quoteId: quoteId.value,
-		channelId: targetChannel.value ? targetChannel.value.id : undefined,
-		reactionAcceptance: reactionAcceptance.value,
-		scheduledNoteDelete: scheduledNoteDelete.value,
-		scheduleNote: scheduleNote.value,
-	}).then(() => {
-		if (clearLocal) {
-			clear();
-			deleteDraft();
-		}
-		cancel();
-		os.toast(i18n.ts.noteDrafted, 'drafted');
-		return { canClosePostForm: true };
-	}).catch(async (err) => {
-		if (err.id === '9ee33bbe-fde3-4c71-9b51-e50492c6b9c8') {
-			await os.alert({ type: 'error', title: i18n.ts.saveAsDraftError, text: i18n.ts.saveAsDraftErrorTooMany });
-		} else {
-			await os.alert({ type: 'error', title: i18n.ts.saveAsDraftError, text: err.id as string });
-		}
-		return { canClosePostForm: false };
-	});
+async function uploadFiles() {
+	await uploader.upload();
+
+	for (const uploadedItem of uploader.items.value.filter(x => x.uploaded != null)) {
+		files.value.push(uploadedItem.uploaded!);
+		uploader.removeItem(uploadedItem);
+	}
 }
 
 async function post(ev?: MouseEvent) {
 	if (ev) {
 		const el = (ev.currentTarget ?? ev.target) as HTMLElement | null;
 
-		if (el) {
+		if (el && prefer.s.animation) {
 			const rect = el.getBoundingClientRect();
 			const x = rect.left + (el.offsetWidth / 2);
 			const y = rect.top + (el.offsetHeight / 2);
@@ -886,9 +982,24 @@ async function post(ev?: MouseEvent) {
 		}
 	}
 
+	if (scheduledAt.value != null) {
+		if (uploader.items.value.some(x => x.uploaded == null)) {
+			await uploadFiles();
+
+			// アップロード失敗したものがあったら中止
+			if (uploader.items.value.some(x => x.uploaded == null)) {
+				return;
+			}
+		}
+
+		await postAsScheduled();
+		clear();
+		return;
+	}
+
 	if (props.mock) return;
 
-	if (saveAsDraft.value) return await saveServerDraft(true);
+	if (saveToDraft.value) return await saveServerDraft();
 
 	if (useCw.value && (cw.value == null || cw.value.trim() === '')) {
 		os.alert({
@@ -898,7 +1009,7 @@ async function post(ev?: MouseEvent) {
 		return;
 	}
 
-	if (defaultStore.state.showNoAltTextWarning && files.value.some((f) => f.comment == null || f.comment.length === 0)) {
+	if (prefer.s.showNoAltTextWarning && files.value.some((f) => f.comment == null || f.comment.length === 0)) {
 		const confirm = await os.actions({
 			type: 'warning',
 			title: i18n.ts.showNoAltWarning,
@@ -926,7 +1037,7 @@ async function post(ev?: MouseEvent) {
 		if (confirm.result === 'cancel') return;
 
 		if (confirm.result === 'neverShow') {
-			defaultStore.set('showNoAltTextWarning', false);
+			prefer.commit('showNoAltTextWarning', false);
 		}
 	}
 
@@ -957,6 +1068,15 @@ async function post(ev?: MouseEvent) {
 		}
 	}
 
+	if (uploader.items.value.some(x => x.uploaded == null)) {
+		await uploadFiles();
+
+		// アップロード失敗したものがあったら中止
+		if (uploader.items.value.some(x => x.uploaded == null)) {
+			return;
+		}
+	}
+
 	let postData = {
 		text: text.value === '' ? null : text.value,
 		fileIds: files.value.length > 0 ? files.value.map(f => f.id) : undefined,
@@ -974,7 +1094,6 @@ async function post(ev?: MouseEvent) {
 		disableRightClick: disableRightClick.value,
 		noteId: props.updateMode ? props.initialNote?.id : undefined,
 		scheduledDelete: scheduledNoteDelete.value,
-		scheduleNote: scheduleNote.value ?? undefined,
 	};
 
 	if (withHashtags.value && hashtags.value && hashtags.value.trim() !== '') {
@@ -997,6 +1116,7 @@ async function post(ev?: MouseEvent) {
 	}
 
 	// plugin
+	const notePostInterruptors = getPluginHandlers('note_post_interruptor');
 	if (notePostInterruptors.length > 0) {
 		for (const interruptor of notePostInterruptors) {
 			try {
@@ -1011,27 +1131,44 @@ async function post(ev?: MouseEvent) {
 
 	if (postAccount.value) {
 		const storedAccounts = await getAccounts();
-		token = storedAccounts.find(x => x.id === postAccount.value?.id)?.token;
+		const storedAccount = storedAccounts.find(x => x.id === postAccount.value?.id);
+		if (storedAccount && storedAccount.token != null) {
+			token = storedAccount.token;
+		} else {
+			await os.alert({
+				type: 'error',
+				text: 'cannot find the token of the selected account.',
+			});
+			return;
+		}
 	}
 
 	posting.value = true;
-	misskeyApi(props.updateMode ? 'notes/update' : (postData.scheduleNote ? 'notes/schedule/create' : 'notes/create'), postData, token).then(() => {
+	const p = () => props.updateMode ? misskeyApi('notes/update', {
+		...postData,
+		noteId: postData.noteId!,
+	}, token) : misskeyApi('notes/create', postData, token);
+
+	p().then((res) => {
 		if (props.freezeAfterPosted) {
 			posted.value = true;
 		} else {
 			clear();
 		}
+
+		globalEvents.emit('notePosted', res.createdNote);
+
 		nextTick(() => {
+			deleteDraft();
+			emit('posted');
+
 			if (replyTargetNote.value) os.toast(i18n.ts.replied, 'reply');
 			else if (renoteTargetNote.value) os.toast(i18n.ts.quoted, 'quote');
 			else if (props.updateMode) os.toast(i18n.ts.noteEdited, 'edited');
-			else if (scheduleNote.value) os.toast(i18n.ts.createSchedulePost, 'scheduled');
 			else os.toast(i18n.ts.posted, 'posted');
 
-			deleteDraft();
-			emit('posted');
 			if (postData.text && postData.text !== '') {
-				const hashtags_ = mfm.parse(postData.text).map(x => x.type === 'hashtag' && x.props.hashtag).filter(x => x) as string[];
+				const hashtags_ = parseMfmCached(postData.text).map(x => x.type === 'hashtag' && x.props.hashtag).filter(x => x) as string[];
 				const history = JSON.parse(miLocalStorage.getItem('hashtags') ?? '[]') as string[];
 				miLocalStorage.setItem('hashtags', JSON.stringify(unique(hashtags_.concat(history))));
 			}
@@ -1090,13 +1227,23 @@ async function post(ev?: MouseEvent) {
 		posting.value = false;
 		os.alert({
 			type: 'error',
-			text: err.message + '\n' + (err as any).id,
+			text: `${err.message}\n${(err as any).id}`,
 		});
 	});
-	textareaEl.value.style.height = '35px';
-	showForm.value = false;
+	if (textareaEl.value) textareaEl.value.style.height = '35px';
 	if (props.updateMode) sound.playMisskeySfx('noteEdited');
-	vibrate(defaultStore.state.vibrateSystem ? [10, 20, 10, 20, 10, 20, 60] : []);
+	showForm.value = false;
+	haptic();
+}
+
+async function postAsScheduled() {
+	if (props.mock) return;
+
+	await saveServerDraft({
+		isActuallyScheduled: true,
+	});
+
+	sound.playMisskeySfx('noteSchedulePost');
 }
 
 function cancel() {
@@ -1164,15 +1311,106 @@ function showActions(ev: MouseEvent) {
 }
 
 async function openMfmCheatSheet() {
-	os.popup(defineAsyncComponent(() => import('@/components/MkMfmCheatSheetDialog.vue')), {}, {}, 'closed');
+	const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkMfmCheatSheetDialog.vue')), {}, {
+		cancel: () => {
+
+		},
+		closed: () => {
+			dispose();
+		},
+	});
 }
 
 const postAccount = ref<Misskey.entities.UserDetailed | null>(null);
 
-function openAccountMenu(ev: MouseEvent) {
+async function openAccountMenu(ev: MouseEvent) {
 	if (props.mock) return;
 
-	openAccountMenu_({
+	function showDraftsDialog(scheduled: boolean) {
+		const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkNoteDraftsDialog.vue')), {
+			scheduled,
+		}, {
+			restore: async (draft: Misskey.entities.NoteDraft) => {
+				text.value = draft.text ?? '';
+				useCw.value = draft.cw != null;
+				cw.value = draft.cw ?? null;
+				disableRightClick.value = draft.disableRightClick ?? false;
+				visibility.value = draft.visibility;
+				//localOnly.value = draft.localOnly ?? false;
+				files.value = draft.files ?? [];
+				hashtags.value = draft.hashtag ?? '';
+				if (draft.deleteAt) {
+					scheduledNoteDelete.value = null;
+					nextTick(() => {
+						scheduledNoteDelete.value = {
+							deleteAt: draft.deleteAt ? (new Date(draft.deleteAt)).getTime() : null,
+							deleteAfter: null,
+						};
+					});
+				}
+				if (draft.hashtag) withHashtags.value = true;
+				if (draft.poll) {
+					// 投票を一時的に空にしないと反映されないため
+					poll.value = null;
+					nextTick(() => {
+						poll.value = {
+							choices: draft.poll!.choices,
+							multiple: draft.poll!.multiple,
+							expiresAt: draft.poll!.expiresAt ? (new Date(draft.poll!.expiresAt)).getTime() : null,
+							expiredAfter: null,
+						};
+					});
+				}
+				if (draft.event) {
+					event.value = null;
+					nextTick(() => {
+						const startValue = typeof draft.event!.start === 'string'
+							? (new Date(draft.event!.start)).getTime()
+							: draft.event!.start;
+						const endValue = typeof draft.event!.end === 'string'
+							? (new Date(draft.event!.end)).getTime()
+							: draft.event!.end;
+						event.value = {
+							title: draft.event!.title,
+							start: startValue,
+							end: endValue,
+							metadata: draft.event!.metadata,
+						};
+					});
+				}
+				if (draft.visibleUserIds) {
+					misskeyApi('users/show', { userIds: draft.visibleUserIds }).then(users => {
+						users.forEach(u => pushVisibleUser(u));
+					});
+				}
+				quoteId.value = draft.renoteId ?? null;
+				renoteTargetNote.value = draft.renote;
+				replyTargetNote.value = draft.reply;
+				reactionAcceptance.value = draft.reactionAcceptance;
+				scheduledAt.value = draft.scheduledAt ?? null;
+				if (draft.channel) targetChannel.value = draft.channel as unknown as Misskey.entities.Channel;
+
+				visibleUsers.value = [];
+				draft.visibleUserIds?.forEach(uid => {
+					if (!visibleUsers.value.some(u => u.id === uid)) {
+						misskeyApi('users/show', { userId: uid }).then(user => {
+							pushVisibleUser(user);
+						});
+					}
+				});
+
+				serverDraftId.value = draft.id;
+			},
+			cancel: () => {
+
+			},
+			closed: () => {
+				dispose();
+			},
+		});
+	}
+
+	const items = await getAccountMenu({
 		withExtraOperation: false,
 		includeCurrentAccount: true,
 		active: postAccount.value != null ? postAccount.value.id : $i.id,
@@ -1183,105 +1421,47 @@ function openAccountMenu(ev: MouseEvent) {
 				postAccount.value = account;
 			}
 		},
-	}, ev);
-}
-
-function getNoteDraftDialog(): Promise<Misskey.entities.NoteDraft | null> {
-	return new Promise((resolve) => {
-		const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkNoteDraftSelectDialog.vue')), {}, {
-			ok: async (res: Misskey.entities.NoteDraft) => {
-				resolve(res);
-			},
-			cancel: () => {
-				resolve(null);
-			},
-			closed: () => {
-				dispose();
-			},
-		});
 	});
-}
 
-function showDraftMenu() {
-	getNoteDraftDialog().then(draft => {
-		if (draft == null) return;
-
-		text.value = draft.text ?? '';
-		useCw.value = draft.cw != null;
-		cw.value = draft.cw ?? null;
-		disableRightClick.value = draft.disableRightClick ?? false;
-		visibility.value = draft.visibility;
-		files.value = draft.files ?? [];
-		hashtags.value = draft.hashtag ?? '';
-		if (draft.deleteAt) {
-			scheduledNoteDelete.value = null;
-			nextTick(() => {
-				scheduledNoteDelete.value = {
-					deleteAt: draft.deleteAt ? (new Date(draft.deleteAt)).getTime() : null,
-					deleteAfter: null,
-				};
-			});
-		}
-		if (draft.hashtag) withHashtags.value = true;
-		if (draft.poll) {
-			// 投票を一時的に空にしないと反映されないため
-			poll.value = null;
-			nextTick(() => {
-				poll.value = {
-					choices: draft.poll!.choices,
-					multiple: draft.poll!.multiple,
-					expiresAt: draft.poll!.expiresAt ? (new Date(draft.poll!.expiresAt)).getTime() : null,
-					expiredAfter: null,
-				};
-			});
-		}
-		if (draft.event) {
-			event.value = null;
-			nextTick(() => {
-				event.value = {
-					title: draft.event!.title,
-					start: (new Date(draft.event!.start)).getTime(),
-					end: (new Date(draft.event!.end)).getTime(),
-					metadata: draft.event!.metadata,
-				};
-			});
-		}
-		if (draft.visibleUserIds) {
-			misskeyApi('users/show', { userIds: draft.visibleUserIds }).then(users => {
-				users.forEach(u => pushVisibleUser(u));
-			});
-		}
-		quoteId.value = draft.renoteId ?? null;
-		renoteTargetNote.value = draft.renote;
-		replyTargetNote.value = draft.reply;
-		reactionAcceptance.value = draft.reactionAcceptance;
-		if (draft.channel) targetChannel.value = draft.channel as unknown as Misskey.entities.Channel;
-
-		visibleUsers.value = [];
-		draft.visibleUserIds?.forEach(uid => {
-			if (!visibleUsers.value.some(u => u.id === uid)) {
-				misskeyApi('users/show', { userId: uid }).then(user => {
-					pushVisibleUser(user);
-				});
-			}
-		});
-
-		serverDraftId.value = draft.id;
-	});
-}
-
-function showPreviewMenu(ev: MouseEvent) {
 	os.popupMenu([{
-		type: 'switch',
-		text: i18n.ts.previewNoteText,
-		icon: 'ti ti-eye',
-		ref: showPreview,
+		type: 'button',
+		text: i18n.ts._drafts.listDrafts,
+		icon: 'ti ti-cloud-download',
+		action: () => {
+			showDraftsDialog(false);
+		},
 	}, {
-		type: 'switch',
-		text: i18n.ts.previewNoteProfile,
-		icon: 'ti ti-user-circle',
-		ref: showProfilePreview,
-	}], ev.currentTarget ?? ev.target);
+		type: 'button',
+		text: i18n.ts._drafts.listScheduledNotes,
+		icon: 'ti ti-clock-down',
+		action: () => {
+			showDraftsDialog(true);
+		},
+	}, { type: 'divider' }, ...items], (ev.currentTarget ?? ev.target ?? undefined) as HTMLElement | undefined);
+}
+
+function showPerUploadItemMenu(item: UploaderItem, ev: MouseEvent) {
+	const menu = uploader.getMenu(item);
+	os.popupMenu(menu, ev.currentTarget ?? ev.target);
+}
+
+function showPerUploadItemMenuViaContextmenu(item: UploaderItem, ev: MouseEvent) {
+	const menu = uploader.getMenu(item);
+	os.contextMenu(menu, ev);
+}
+
+async function schedule() {
+	const { canceled, result } = await os.inputDatetime({
+		title: i18n.ts.schedulePost,
+	});
+	if (canceled) return;
+	if (result.getTime() <= Date.now()) return;
+
+	scheduledAt.value = result.getTime();
+}
+
+function cancelSchedule() {
+	scheduledAt.value = null;
 }
 
 function toggleScheduledNoteDelete() {
@@ -1295,63 +1475,8 @@ function toggleScheduledNoteDelete() {
 	}
 }
 
-function toggleScheduleNote() {
-	if (scheduleNote.value) scheduleNote.value = null;
-	else {
-		scheduleNote.value = {
-			scheduledAt: null,
-		};
-	}
-}
-
-function showOtherMenu(ev: MouseEvent) {
-	const menuItems: MenuItem[] = [];
-
-	menuItems.push(
-		{
-			type: 'switch',
-			text: i18n.ts.disableRightClick,
-			icon: 'ti ti-mouse-off',
-			ref: disableRightClick,
-		}, {
-			type: 'button',
-			text: i18n.ts.event,
-			icon: 'ti ti-calendar',
-			action: toggleEvent,
-		}, { type: 'divider' },
-	);
-
-	menuItems.push({
-		type: 'button',
-		text: i18n.ts.scheduledNoteDelete,
-		icon: 'ti ti-clock-hour-9',
-		action: toggleScheduledNoteDelete,
-	});
-
-	if ($i.policies.scheduleNoteMax > 0) {
-		menuItems.push({
-			type: 'button',
-			text: i18n.ts.schedulePost,
-			icon: 'ti ti-calendar-time',
-			action: toggleScheduleNote,
-		}, {
-			type: 'button',
-			text: i18n.ts.schedulePostList,
-			icon: 'ti ti-calendar-event',
-			action: os.listScheduleNotePost,
-		});
-	}
-	if ($i.policies.noteDraftLimit > 0) {
-		menuItems.push({
-			type: 'button',
-			text: i18n.ts.draftNoteList,
-			icon: 'ti ti-pencil-minus',
-			action: showDraftMenu,
-			active: postAccount.value != null && postAccount.value.id !== $i.id,
-		});
-	}
-
-	os.popupMenu(menuItems, ev.currentTarget ?? ev.target);
+function cancelScheduleDelete() {
+	scheduledNoteDelete.value = null;
 }
 
 function showPostMenu(ev: MouseEvent) {
@@ -1360,9 +1485,9 @@ function showPostMenu(ev: MouseEvent) {
 	if ($i.policies.noteDraftLimit > 0) {
 		menuItems.push({
 			type: 'switch',
-			text: i18n.ts.saveAsDraft,
+			text: i18n.ts._drafts.saveToDraft,
 			icon: 'ti ti-pencil-minus',
-			ref: saveAsDraft,
+			ref: saveToDraft,
 		});
 	}
 
@@ -1371,6 +1496,7 @@ function showPostMenu(ev: MouseEvent) {
 		text: i18n.ts.disableRightClick,
 		icon: 'ti ti-mouse-off',
 		ref: disableRightClick,
+		disabled: files.value.length < 1,
 	});
 
 	os.popupMenu(menuItems, ev.currentTarget ?? ev.target);
@@ -1384,7 +1510,7 @@ function formClick() {
 	}
 
 	if (props.reply && props.reply.text != null) {
-		const ast = mfm.parse(props.reply.text);
+		const ast = parseMfmCached(props.reply.text);
 		const otherHost = props.reply.user.host;
 
 		for (const x of extractMentions(ast)) {
@@ -1406,9 +1532,11 @@ function formClick() {
 }
 
 function signin() {
-	os.popup(XSigninDialog, {
+	const { dispose } = os.popup(XSigninDialog, {
 		autoSet: true,
-	}, {}, 'closed');
+	}, {
+		closed: () => dispose(),
+	});
 }
 
 onMounted(() => {
@@ -1420,7 +1548,7 @@ onMounted(() => {
 		});
 	}
 
-	autosize(textareaEl.value);
+	if (textareaEl.value) autosize(textareaEl.value);
 
 	// TODO: detach when unmount
 	if (textareaEl.value) new Autocomplete(textareaEl.value, text);
@@ -1436,7 +1564,7 @@ onMounted(() => {
 				useCw.value = draft.data.useCw;
 				cw.value = draft.data.cw;
 				disableRightClick.value = draft.data.disableRightClick;
-				saveAsDraft.value = draft.data.saveAsDraft;
+				saveToDraft.value = draft.data.saveToDraft;
 				visibility.value = draft.data.visibility;
 				searchableBy.value = draft.data.searchableBy;
 				files.value = (draft.data.files || []).filter(draftFile => draftFile);
@@ -1453,6 +1581,8 @@ onMounted(() => {
 				}
 				quoteId.value = draft.data.quoteId;
 				reactionAcceptance.value = draft.data.reactionAcceptance;
+				scheduledAt.value = draft.data.scheduledAt ?? null;
+				scheduledNoteDelete.value = draft.data.scheduledNoteDelete ?? null;
 			}
 		}
 
@@ -1474,10 +1604,16 @@ onMounted(() => {
 				};
 			}
 			if (init.event) {
+				const startValue = typeof init.event.start === 'string'
+					? (new Date(init.event.start)).getTime()
+					: init.event.start;
+				const endValue = typeof init.event.end === 'string'
+					? (new Date(init.event.end)).getTime()
+					: init.event.end;
 				event.value = {
 					title: init.event.title,
-					start: init.event.start,
-					end: init.event.end,
+					start: startValue,
+					end: endValue,
 					metadata: init.event.metadata,
 				};
 			}
@@ -1489,16 +1625,11 @@ onMounted(() => {
 			quoteId.value = renoteTargetNote.value ? renoteTargetNote.value.id : null;
 			reactionAcceptance.value = init.reactionAcceptance;
 			disableRightClick.value = init.disableRightClick != null;
-			saveAsDraft.value = false;
+			saveToDraft.value = false;
 			if (init.deletedAt) {
 				scheduledNoteDelete.value = {
 					deleteAt: init.deletedAt ? (new Date(init.deletedAt)).getTime() : null,
 					deleteAfter: null,
-				};
-			}
-			if (init.isSchedule) {
-				scheduleNote.value = {
-					scheduledAt: new Date(init.createdAt).getTime(),
 				};
 			}
 		}
@@ -1507,8 +1638,24 @@ onMounted(() => {
 	});
 });
 
+async function canClose() {
+	if (!uploader.allItemsUploaded.value) {
+		const { canceled } = await os.confirm({
+			type: 'question',
+			text: i18n.ts._postForm.quitInspiteOfThereAreUnuploadedFilesConfirm,
+			okText: i18n.ts.yes,
+			cancelText: i18n.ts.no,
+		});
+		if (canceled) return false;
+	}
+
+	return true;
+}
+
 defineExpose({
 	clear,
+	abortUploader: () => uploader.abortAll(),
+	canClose,
 });
 </script>
 
@@ -1519,6 +1666,7 @@ defineExpose({
   transform: translateY(0);
   transition: transform 850ms cubic-bezier(0.23, 1, 0.32, 1), opacity 850ms cubic-bezier(0.23, 1, 0.32, 1);
 }
+
 .transition_header_enterFrom {
   opacity: 0;
   transform: translateY(20px);
@@ -1537,6 +1685,8 @@ defineExpose({
 	&.modal {
 		width: 100%;
 		max-width: 640px;
+		overflow-x: clip;
+		overflow-y: auto;
 	}
 }
 
@@ -1552,31 +1702,29 @@ defineExpose({
 
 .headerLeft {
 	display: flex;
-	flex: 0 1 100px;
+	flex: 1;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 6px;
+	padding-left: 12px;
 }
 
 .cancel {
-	padding: 0;
-	font-size: 1em;
-	height: 100%;
-	flex: 0 1 50px;
+	padding: 8px;
 }
 
 .account {
-	height: 100%;
-	display: inline-flex;
-	vertical-align: bottom;
-	flex: 0 1 50px;
-
-	&.fixed {
-		margin: 0 0 0 12px;
-	}
 }
 
 .avatar {
 	width: 28px;
 	height: 28px;
 	margin: auto 0;
+	border-radius: 100%;
+
+	&.square {
+		border-radius: 20%;
+	}
 }
 
 .headerRight {
@@ -1592,6 +1740,7 @@ defineExpose({
 }
 
 .submit {
+	display: flex;
 	margin: 12px 12px 12px 6px;
 	vertical-align: bottom;
 }
@@ -1693,13 +1842,21 @@ defineExpose({
 }
 //#endregion
 
+.cwSwapButton {
+	margin-left: 8px;
+	padding: 8px;
+	border-radius: 6px;
+	&:hover {
+		background: var(--X4);
+	}
+}
+
 .preview {
 	padding: 16px 20px;
 	// min-height: 75px;
 	max-height: 150px;
 	overflow: auto;
 	background-size: auto auto;
-	margin: 16px 8px;
 }
 
 html[data-color-scheme=dark] .preview {
@@ -1708,6 +1865,10 @@ html[data-color-scheme=dark] .preview {
 
 html[data-color-scheme=light] .preview {
 	background-image: repeating-linear-gradient(135deg, transparent, transparent 5px, #00000005 5px, #00000005 10px);
+}
+
+.targetNote {
+	padding: 0 30px 16px 30px;
 }
 
 .withQuote {
@@ -1752,6 +1913,10 @@ html[data-color-scheme=light] .preview {
 	margin: 0 20px 16px 20px;
 }
 
+.scheduledAt {
+	margin: 0 20px 16px 20px;
+}
+
 .cw,
 .hashtags,
 .text {
@@ -1760,7 +1925,7 @@ html[data-color-scheme=light] .preview {
 	padding: 0 30px;
 	margin: 0;
 	width: 100%;
-	font-size: 16px;
+	font-size: 110%;
 	border: none;
 	border-radius: 0;
 	background: transparent;
@@ -1777,6 +1942,7 @@ html[data-color-scheme=light] .preview {
 }
 
 .cwOuter {
+	display: flex;
 	width: 100%;
 	position: relative;
 }
@@ -1805,10 +1971,18 @@ html[data-color-scheme=light] .preview {
 }
 
 .hashtags {
+	display: inline-block;
 	z-index: 1;
+}
+div.hashtags {
+	display: flex;
+	align-items: center;
 	padding-top: 8px;
 	padding-bottom: 8px;
 	border-top: solid 0.5px var(--MI_THEME-divider);
+}
+input.hashtags {
+	padding: 0 2px;
 }
 
 .textOuter {
@@ -1820,7 +1994,7 @@ html[data-color-scheme=light] .preview {
 	}
 
   &.showForm {
-    margin-top: 20px;
+    margin: 20px 0;
   }
 }
 
@@ -1946,7 +2120,7 @@ html[data-color-scheme=light] .preview {
 		padding: 0 22px 8px;
 	}
 
-	.hashtags {
+	div.hashtags {
 		padding: 8px 22px;
 	}
 

@@ -9,12 +9,11 @@ import type { MenuItem } from '@/types/menu.js';
 import * as os from '@/os.js';
 import { instance } from '@/instance.js';
 import { i18n } from '@/i18n.js';
-import { $i } from '@/account.js';
-import { defaultStore } from '@/store.js';
-import { unisonReload } from '@/scripts/unison-reload.js';
+import { $i } from '@/i.js';
+import { prefer } from '@/preferences.js';
 
 function toolsMenuItems(): MenuItem[] {
-	return [{
+	const items: MenuItem[] = [{
 		type: 'link',
 		to: '/scratchpad',
 		text: i18n.ts.scratchpad,
@@ -29,25 +28,39 @@ function toolsMenuItems(): MenuItem[] {
 		to: '/clicker',
 		text: '🍪👈',
 		icon: 'ti ti-cookie',
-	}, ($i && ($i.isAdmin || $i.policies.canManageCustomEmojis)) ? {
-		type: 'link',
-		to: '/custom-emojis-manager',
-		text: i18n.ts.manageCustomEmojis,
-		icon: 'ti ti-icons',
-	} : undefined, ($i && ($i.isAdmin || $i.policies.canManageAvatarDecorations)) ? {
-		type: 'link',
-		to: '/avatar-decorations',
-		text: i18n.ts.manageAvatarDecorations,
-		icon: 'ti ti-sparkles',
-	} : undefined, ($i) ? {
-		type: 'button',
-		text: i18n.ts.replayUserSetupDialog,
-		icon: 'ti ti-list-numbers',
-		action: () => {
-			defaultStore.set('accountSetupWizard', 0);
-			os.popup(defineAsyncComponent(() => import('@/components/MkUserSetupDialog.vue')), {}, {}, 'closed');
-		},
-	} : undefined];
+	}];
+
+	if ($i && ($i.isAdmin || $i.policies.canManageCustomEmojis)) {
+		items.push({
+			type: 'link',
+			to: '/custom-emojis-manager',
+			text: i18n.ts.manageCustomEmojis,
+			icon: 'ti ti-icons',
+		});
+	}
+
+	if ($i && ($i.isAdmin || $i.policies.canManageAvatarDecorations)) {
+		items.push({
+			type: 'link' as const,
+			to: '/avatar-decorations',
+			text: i18n.ts.manageAvatarDecorations,
+			icon: 'ti ti-sparkles',
+		});
+	}
+
+	if ($i) {
+		items.push({
+			type: 'button',
+			text: i18n.ts.replayUserSetupDialog,
+			icon: 'ti ti-list-numbers',
+			action: () => {
+				prefer.commit('accountSetupWizard', 0);
+				os.popup(defineAsyncComponent(() => import('@/components/MkUserSetupDialog.vue')), {}, {});
+			},
+		});
+	}
+
+	return items;
 }
 
 export function openInstanceMenu(ev: MouseEvent) {
@@ -145,11 +158,12 @@ export function openInstanceMenu(ev: MouseEvent) {
 		});
 	}
 	if (instance.statusUrl) {
+		const statusUrl = instance.statusUrl;
 		menuItems.push({
 			text: i18n.ts.statusUrl,
 			icon: 'ti ti-activity',
 			action: () => {
-				window.open(instance.statusUrl, '_blank', 'noopener');
+				window.open(statusUrl, '_blank', 'noopener');
 			},
 		});
 	}
@@ -176,6 +190,11 @@ export function openInstanceMenu(ev: MouseEvent) {
 				text: i18n.ts._mfc.cheatSheet,
 				icon: 'ti ti-help-circle',
 				to: '/mfc-cheat-sheet',
+			}, {
+				type: 'link',
+				text: i18n.ts._keyboardShortCut.list,
+				icon: 'ti ti-keyboard',
+				to: '/keyboard-shortcuts',
 			});
 
 			return documentChildMenu;
@@ -186,8 +205,8 @@ export function openInstanceMenu(ev: MouseEvent) {
 		menuItems.push({
 			text: i18n.ts._initialTutorial.launchTutorial,
 			icon: 'ti ti-presentation',
-			action: () => {
-				const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkTutorialDialog.vue')), {}, {
+			action: async () => {
+				const { dispose } = await os.popupAsyncWithDialog(import('@/components/MkTutorialDialog.vue').then(x => x.default), {}, {
 					closed: () => dispose(),
 				});
 			},

@@ -4,13 +4,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<MkStickyContainer>
-	<template #header><MkPageHeader :actions="headerActions" :tabs="headerTabs"/></template>
-	<MkSpacer :contentMax="700">
+<PageWithHeader :actions="headerActions" :tabs="headerTabs">
+	<div class="_spacer" style="--MI_SPACER-w: 700px;">
 		<MkRemoteCaution v-if="remoteUrl != null" :href="remoteUrl" class="warn" :class="$style.remote_caution"/>
-		<Transition :name="defaultStore.state.animation ? 'fade' : ''" mode="out-in">
+		<Transition :name="prefer.s.animation ? 'fade' : ''" mode="out-in">
 			<div v-if="flash" :key="flash.id">
-				<Transition :name="defaultStore.state.animation ? 'zoom' : ''" mode="out-in">
+				<Transition :name="prefer.s.animation ? 'zoom' : ''" mode="out-in">
 					<div v-if="started" :class="$style.started">
 						<div class="main _panel">
 							<MkAsUi v-if="root" :component="root" :components="components"/>
@@ -54,39 +53,40 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</div>
 				</div>
 				<MkA v-if="$i && $i.id === flash.userId" :to="`/play/${flash.id}/edit`" style="color: var(--MI_THEME-accent);">{{ i18n.ts._play.editThisPage }}</MkA>
-				<MkAd :prefer="['horizontal', 'horizontal-big']"/>
+				<MkAd :preferForms="['horizontal', 'horizontal-big']"/>
 			</div>
 			<MkError v-else-if="error" @retry="fetchFlash()"/>
 			<MkLoading v-else/>
 		</Transition>
-	</MkSpacer>
-</MkStickyContainer>
+	</div>
+</PageWithHeader>
 </template>
 
 <script lang="ts" setup>
 import { computed, onDeactivated, onUnmounted, ref, watch, shallowRef, defineAsyncComponent } from 'vue';
 import * as Misskey from 'cherrypick-js';
-import { Interpreter, Parser, values } from '@syuilo/aiscript';
 import { url } from '@@/js/config.js';
 import type { Ref } from 'vue';
-import type { AsUiComponent, AsUiRoot } from '@/scripts/aiscript/ui.js';
+import type { AsUiComponent, AsUiRoot } from '@/aiscript/ui.js';
 import type { MenuItem } from '@/types/menu.js';
+import type { Interpreter } from '@syuilo/aiscript';
 import MkButton from '@/components/MkButton.vue';
 import MkRemoteCaution from '@/components/MkRemoteCaution.vue';
 import * as os from '@/os.js';
-import { misskeyApi } from '@/scripts/misskey-api.js';
+import { misskeyApi } from '@/utility/misskey-api.js';
 import { i18n } from '@/i18n.js';
-import { definePageMetadata } from '@/scripts/page-metadata.js';
+import { definePage } from '@/page.js';
 import MkAsUi from '@/components/MkAsUi.vue';
-import { registerAsUiLib } from '@/scripts/aiscript/ui.js';
-import { aiScriptReadline, createAiScriptEnv } from '@/scripts/aiscript/api.js';
+import { registerAsUiLib } from '@/aiscript/ui.js';
+import { aiScriptReadline, createAiScriptEnv } from '@/aiscript/api.js';
 import MkFolder from '@/components/MkFolder.vue';
 import MkCode from '@/components/MkCode.vue';
-import { defaultStore } from '@/store.js';
-import { $i } from '@/account.js';
-import { isSupportShare } from '@/scripts/navigator.js';
-import { copyToClipboard } from '@/scripts/copy-to-clipboard.js';
-import { pleaseLogin } from '@/scripts/please-login.js';
+import { prefer } from '@/preferences.js';
+import { $i } from '@/i.js';
+import { isSupportShare } from '@/utility/navigator.js';
+import { copyToClipboard } from '@/utility/copy-to-clipboard.js';
+import { pleaseLogin } from '@/utility/please-login.js';
+import { popup } from '@/os.js';
 
 const props = defineProps<{
 	id: string;
@@ -141,13 +141,16 @@ function share(ev: MouseEvent) {
 function copyLink() {
 	if (!flash.value) return;
 
-	copyToClipboard(`${url}/play/${flash.value.id}`);
-	os.success();
+	copyToClipboard(`${url}/play/${flash.value.id}`, 'link');
 }
 
 function shareQRCode() {
 	if (!flash.value) return;
-	os.displayQRCode(`${url}/play/${flash.value.id}`);
+	const { dispose } = popup(defineAsyncComponent(() => import('@/components/MkQRCode.vue')), {
+		qrCode: `${url}/play/${flash.value.id}`,
+	}, {
+		closed: () => dispose(),
+	});
 }
 
 function shareWithNavigator() {
@@ -200,8 +203,6 @@ async function unlike() {
 
 watch(() => props.id, fetchFlash, { immediate: true });
 
-const parser = new Parser();
-
 const started = ref(false);
 const aiscript = shallowRef<Interpreter | null>(null);
 const root = ref<AsUiRoot>();
@@ -216,9 +217,15 @@ async function run() {
 	if (aiscript.value) aiscript.value.abort();
 	if (!flash.value) return;
 
+	const isLegacy = !flash.value.script.replaceAll(' ', '').startsWith('///@1.0.0');
+
+	const { Interpreter, Parser, values } = isLegacy ? (await import('@syuilo/aiscript-0-19-0') as any) : await import('@syuilo/aiscript');
+
+	const parser = new Parser();
+
 	components.value = [];
 
-	aiscript.value = new Interpreter({
+	const interpreter = new Interpreter({
 		...createAiScriptEnv({
 			storageKey: 'flash:' + flash.value.id,
 		}),
@@ -237,6 +244,8 @@ async function run() {
 		},
 	});
 
+	aiscript.value = interpreter;
+
 	let ast;
 	try {
 		ast = parser.parse(flash.value.script);
@@ -248,8 +257,8 @@ async function run() {
 		return;
 	}
 	try {
-		await aiscript.value.exec(ast);
-	} catch (err) {
+		await interpreter.exec(ast);
+	} catch (err: any) {
 		os.alert({
 			type: 'error',
 			title: 'AiScript Error',
@@ -258,12 +267,12 @@ async function run() {
 	}
 }
 
-function reportAbuse() {
+async function reportAbuse() {
 	if (!flash.value) return;
 
 	const pageUrl = `${url}/play/${flash.value.id}`;
 
-	const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkAbuseReportWindow.vue')), {
+	const { dispose } = await os.popupAsyncWithDialog(import('@/components/MkAbuseReportWindow.vue').then(x => x.default), {
 		user: flash.value.user,
 		initialComment: `Play: ${pageUrl}\n-----\n`,
 	}, {
@@ -322,7 +331,7 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(() => ({
+definePage(() => ({
 	title: flash.value ? flash.value.title : 'Play',
 	...flash.value ? {
 		avatar: flash.value.user,
@@ -389,6 +398,7 @@ definePageMetadata(() => ({
 
 			> .items {
 				display: flex;
+				flex-wrap: wrap;
 				justify-content: center;
 				gap: 12px;
 				padding: 16px;

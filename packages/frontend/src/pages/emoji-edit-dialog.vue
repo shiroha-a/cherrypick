@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<template v-else #header>New emoji</template>
 
 	<div style="display: flex; flex-direction: column; min-height: 100%;">
-		<MkSpacer :marginMin="20" :marginMax="28" style="flex-grow: 1;">
+		<div class="_spacer" style="--MI_SPACER-min: 20px; --MI_SPACER-max: 28px; flex-grow: 1;">
 			<div class="_gaps_m">
 				<div v-if="imgUrl != null" :class="$style.imgs">
 					<div style="background: #000;" :class="$style.imgContainer">
@@ -40,7 +40,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<MkInput v-model="name" pattern="[a-z0-9_]" autocapitalize="off">
 					<template #label>{{ i18n.ts.name }}</template>
 				</MkInput>
-				<MkInput v-model="category" :datalist="customEmojiCategories">
+				<MkInput v-model="category" :datalist="customEmojiCategories.filter(x => x != null)">
 					<template #label>{{ i18n.ts.category }}</template>
 				</MkInput>
 				<MkInput v-model="aliases" autocapitalize="off">
@@ -84,19 +84,16 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</MkFolder>
 				<MkSwitch v-model="isSensitive">isSensitive</MkSwitch>
 				<MkSwitch v-model="localOnly">{{ i18n.ts.localOnly }}</MkSwitch>
-				<MkSelect v-model="copyPermission">
+				<MkSelect v-model="copyPermission" :items="copyPermissionDef">
 					<template #label>{{ i18n.ts._emoji.copyPermission }}</template>
-					<option value="allow">{{ i18n.ts._emoji.allow }}</option>
-					<option value="deny">{{ i18n.ts._emoji.deny }}</option>
-					<option value="conditional">{{ i18n.ts._emoji.conditional }}</option>
 				</MkSelect>
 				<MkKeyValue v-if="importFrom">
 					<template #key>{{ i18n.ts._emoji.importFrom }}</template>
-					<template #value><Mfm :text="emoji.importFrom"/></template>
+					<template #value><Mfm :text="emoji?.importFrom??''"/></template>
 				</MkKeyValue>
 				<MkButton v-if="emoji" danger @click="del()"><i class="ti ti-trash"></i> {{ i18n.ts.delete }}</MkButton>
 			</div>
-		</MkSpacer>
+		</div>
 		<div :class="$style.footer">
 			<MkButton primary rounded style="margin: 0 auto;" @click="done"><i class="ti ti-check"></i> {{ props.emoji ? i18n.ts.update : i18n.ts.create }}</MkButton>
 		</div>
@@ -105,7 +102,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { computed, watch, ref } from 'vue';
+import { computed, watch, ref, useTemplateRef } from 'vue';
 import * as Misskey from 'cherrypick-js';
 import MkWindow from '@/components/MkWindow.vue';
 import MkButton from '@/components/MkButton.vue';
@@ -114,14 +111,15 @@ import MkTextarea from '@/components/MkTextarea.vue';
 import MkInfo from '@/components/MkInfo.vue';
 import MkFolder from '@/components/MkFolder.vue';
 import * as os from '@/os.js';
-import { misskeyApi } from '@/scripts/misskey-api.js';
+import { misskeyApi } from '@/utility/misskey-api.js';
 import { i18n } from '@/i18n.js';
 import { customEmojiCategories } from '@/custom-emojis.js';
 import MkSwitch from '@/components/MkSwitch.vue';
-import { selectFile } from '@/scripts/select-file.js';
+import { selectFile } from '@/utility/drive.js';
 import MkRolePreview from '@/components/MkRolePreview.vue';
 import MkSelect from '@/components/MkSelect.vue';
 import MkKeyValue from '@/components/MkKeyValue.vue';
+import { useMkSelect } from '@/composables/use-mkselect.js';
 
 const props = defineProps<{
 	emoji?: Misskey.entities.EmojiDetailed,
@@ -134,7 +132,7 @@ const emit = defineEmits<{
 	(ev: 'closed'): void
 }>();
 
-const windowEl = ref<InstanceType<typeof MkWindow> | null>(null);
+const windowEl = useTemplateRef('windowEl');
 const name = ref<string>(props.emoji ? props.emoji.name : '');
 const category = ref<string>(props.emoji?.category ? props.emoji.category : '');
 const aliases = ref<string>(props.emoji ? props.emoji.aliases.join(' ') : '');
@@ -142,11 +140,22 @@ const license = ref<string>(props.emoji?.license ? props.emoji.license : '');
 const isSensitive = ref(props.emoji ? props.emoji.isSensitive : false);
 const localOnly = ref(props.emoji ? props.emoji.localOnly : false);
 
-const description = ref<string>(props.emoji ? props.emoji.description : null);
-const author = ref<string>(props.emoji ? props.emoji.author : null);
-const usageInfo = ref<string>(props.emoji ? props.emoji.usageInfo : null);
-const isBasedOn = ref<string>(props.emoji ? props.emoji.isBasedOn : null);
-const copyPermission = ref<string>(props.emoji ? props.emoji.copyPermission : 'allow');
+const description = ref<string>(props.emoji?.description ? props.emoji.description : '');
+const author = ref<string>(props.emoji?.author ? props.emoji.author : '');
+const usageInfo = ref<string>(props.emoji?.usageInfo ? props.emoji.usageInfo : '');
+const isBasedOn = ref<string>(props.emoji?.isBasedOn ? props.emoji.isBasedOn : '');
+
+const {
+	model: copyPermission,
+	def: copyPermissionDef,
+} = useMkSelect({
+	items: [
+		{ label: i18n.ts._emoji.allow, value: 'allow' },
+		{ label: i18n.ts._emoji.deny, value: 'deny' },
+		{ label: i18n.ts._emoji.conditional, value: 'conditional' },
+	],
+	initialValue: props.emoji?.copyPermission ? props.emoji.copyPermission : 'allow',
+});
 const importFrom = computed(() => props.emoji ? props.emoji.importFrom : null);
 
 const roleIdsThatCanBeUsedThisEmojiAsReaction = ref(props.emoji ? props.emoji.roleIdsThatCanBeUsedThisEmojiAsReaction : []);
@@ -160,7 +169,10 @@ watch(roleIdsThatCanBeUsedThisEmojiAsReaction, async () => {
 const imgUrl = computed(() => file.value ? file.value.url : props.emoji ? props.emoji.url : null);
 
 async function changeImage(ev: Event) {
-	file.value = await selectFile(ev.currentTarget ?? ev.target, null);
+	file.value = await selectFile({
+		anchorElement: ev.currentTarget ?? ev.target,
+		multiple: false,
+	});
 	const candidate = file.value.name.replace(/\.(.+)$/, '');
 	if (candidate.match(/^[a-z0-9_]+$/)) {
 		name.value = candidate;
@@ -171,12 +183,12 @@ async function addRole() {
 	const roles = await misskeyApi('admin/roles/list');
 	const currentRoleIds = rolesThatCanBeUsedThisEmojiAsReaction.value.map(x => x.id);
 
-	const { canceled, result: role } = await os.select({
-		items: roles.filter(r => r.isPublic).filter(r => !currentRoleIds.includes(r.id)).map(r => ({ text: r.name, value: r })),
+	const { canceled, result: roleId } = await os.select({
+		items: roles.filter(r => r.isPublic).filter(r => !currentRoleIds.includes(r.id)).map(r => ({ label: r.name, value: r.id })),
 	});
-	if (canceled || role == null) return;
+	if (canceled || roleId == null) return;
 
-	rolesThatCanBeUsedThisEmojiAsReaction.value.push(role);
+	rolesThatCanBeUsedThisEmojiAsReaction.value.push(roles.find(r => r.id === roleId)!);
 }
 
 async function removeRole(role: Misskey.entities.RoleLite, ev: Event) {
@@ -197,11 +209,8 @@ async function done() {
 		isBasedOn: isBasedOn.value,
 		copyPermission: copyPermission.value,
 		roleIdsThatCanBeUsedThisEmojiAsReaction: rolesThatCanBeUsedThisEmojiAsReaction.value.map(x => x.id),
+		fileId: file.value ? file.value.id : undefined,
 	};
-
-	if (file.value) {
-		params.fileId = file.value.id;
-	}
 
 	if (props.emoji) {
 		await os.apiWithDialog('admin/emoji/update', {
@@ -218,7 +227,12 @@ async function done() {
 
 		windowEl.value?.close();
 	} else {
-		const created = await os.apiWithDialog('admin/emoji/add', params);
+		if (params.fileId == null) return;
+
+		const created = await os.apiWithDialog('admin/emoji/add', {
+			...params,
+			fileId: params.fileId, // TSを黙らすため
+		});
 
 		emit('done', {
 			created: created,
@@ -289,7 +303,7 @@ async function del() {
 	left: 0;
 	padding: 12px;
 	border-top: solid 0.5px var(--MI_THEME-divider);
-	background: var(--MI_THEME-acrylicBg);
+	background: color(from var(--MI_THEME-bg) srgb r g b / 0.5);
 	-webkit-backdrop-filter: var(--MI-blur, blur(15px));
 	backdrop-filter: var(--MI-blur, blur(15px));
 }

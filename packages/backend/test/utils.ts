@@ -45,15 +45,15 @@ export const host = new URL(config.url).host;
 export const WEBHOOK_HOST = 'http://localhost:15080';
 export const WEBHOOK_PORT = 15080;
 
-export const cookie = (me: UserToken): string => {
-	return `token=${me.token};`;
-};
-
 export type ApiRequest<E extends keyof misskey.Endpoints, P extends misskey.Endpoints[E]['req'] = misskey.Endpoints[E]['req']> = {
 	endpoint: E,
 	parameters: P,
 	user: UserToken | undefined,
 };
+
+export async function sleep(ms = 250): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export const successfulApiCall = async <E extends keyof misskey.Endpoints, P extends misskey.Endpoints[E]['req']>(request: ApiRequest<E, P>, assertion: {
 	status?: number,
@@ -310,8 +310,12 @@ export const uploadFile = async (user?: UserToken, { path, name, blob }: UploadO
 			: new URL(path, new URL('resources/', import.meta.url));
 
 	const formData = new FormData();
-	formData.append('file', blob ??
-		new File([await readFile(absPath)], basename(absPath.toString())));
+	formData.append(
+		'file',
+		blob ?? new Blob([new Uint8Array(await readFile(absPath))]),
+		basename(absPath.toString()),
+	);
+
 	formData.append('force', 'true');
 	if (name) {
 		formData.append('name', name);
@@ -602,8 +606,8 @@ export async function initTestDb(justBorrow = false, initEntities?: any[]) {
 		username: config.db.user,
 		password: config.db.pass,
 		database: config.db.db,
-		synchronize: true && !justBorrow,
-		dropSchema: true && !justBorrow,
+		synchronize: !justBorrow,
+		dropSchema: !justBorrow,
 		entities: initEntities ?? entities,
 	});
 
@@ -655,7 +659,9 @@ export async function captureWebhook<T = SystemWebhookPayload>(postAction: () =>
 	let timeoutHandle: NodeJS.Timeout | null = null;
 	const result = await new Promise<string>(async (resolve, reject) => {
 		fastify.all('/', async (req, res) => {
-			timeoutHandle && clearTimeout(timeoutHandle);
+			if (timeoutHandle) {
+				clearTimeout(timeoutHandle);
+			}
 
 			const body = JSON.stringify(req.body);
 			res.status(200).send('ok');

@@ -159,8 +159,8 @@ describe('CheckModeratorsActivityProcessorService', () => {
 
 	afterEach(async () => {
 		clock.uninstall();
-		await usersRepository.delete({});
-		await userProfilesRepository.delete({});
+		await usersRepository.createQueryBuilder().delete().execute();
+		await userProfilesRepository.createQueryBuilder().delete().execute();
 		roleService.getModerators.mockReset();
 		announcementService.create.mockReset();
 		emailService.sendEmail.mockReset();
@@ -318,7 +318,7 @@ describe('CheckModeratorsActivityProcessorService', () => {
 				createUser({}, { email: 'user2@example.com', emailVerified: false }),
 				createUser({}, { email: null, emailVerified: false }),
 				createUser({}, { email: 'user4@example.com', emailVerified: true }),
-				createUser({ isRoot: true }, { email: 'root@example.com', emailVerified: true }),
+				createUser({}, { email: 'root@example.com', emailVerified: true }),
 			]);
 
 			mockModeratorRole([user1, user2, user3, root]);
@@ -351,7 +351,7 @@ describe('CheckModeratorsActivityProcessorService', () => {
 				createUser({}, { email: 'user2@example.com', emailVerified: false }),
 				createUser({}, { email: null, emailVerified: false }),
 				createUser({}, { email: 'user4@example.com', emailVerified: true }),
-				createUser({ isRoot: true }, { email: 'root@example.com', emailVerified: true }),
+				createUser({}, { email: 'root@example.com', emailVerified: true }),
 			]);
 
 			mockModeratorRole([user1, user2, user3, root]);
@@ -390,7 +390,7 @@ describe('CheckModeratorsActivityProcessorService', () => {
 				createUser({}, { email: 'user2@example.com', emailVerified: false }),
 				createUser({}, { email: null, emailVerified: false }),
 				createUser({}, { email: 'user4@example.com', emailVerified: true }),
-				createUser({ isRoot: true }, { email: 'root@example.com', emailVerified: true }),
+				createUser({}, { email: 'root@example.com', emailVerified: true }),
 			]);
 
 			mockModeratorRole([user1, user2, user3, root]);

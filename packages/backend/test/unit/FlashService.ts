@@ -7,7 +7,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FlashService } from '@/core/FlashService.js';
 import { IdService } from '@/core/IdService.js';
-import { FlashsRepository, MiFlash, MiUser, UserProfilesRepository, UsersRepository } from '@/models/_.js';
+import { FlashLikesRepository, FlashsRepository, MiFlash, MiUser, UserProfilesRepository, UsersRepository } from '@/models/_.js';
 import { DI } from '@/di-symbols.js';
 import { GlobalModule } from '@/GlobalModule.js';
 import { CoreModule } from '@/core/CoreModule.js';
@@ -19,6 +19,7 @@ describe('FlashService', () => {
 	// --------------------------------------------------------------------------------------
 
 	let flashsRepository: FlashsRepository;
+	let flashLikesRepository: FlashLikesRepository;
 	let usersRepository: UsersRepository;
 	let userProfilesRepository: UserProfilesRepository;
 	let idService: IdService;
@@ -77,19 +78,21 @@ describe('FlashService', () => {
 		service = app.get(FlashService);
 
 		flashsRepository = app.get(DI.flashsRepository);
+		flashLikesRepository = app.get(DI.flashLikesRepository);
 		usersRepository = app.get(DI.usersRepository);
 		userProfilesRepository = app.get(DI.userProfilesRepository);
 		idService = app.get(IdService);
 
-		root = await createUser({ username: 'root', usernameLower: 'root', isRoot: true });
-		alice = await createUser({ username: 'alice', usernameLower: 'alice', isRoot: false });
-		bob = await createUser({ username: 'bob', usernameLower: 'bob', isRoot: false });
+		root = await createUser({ username: 'root', usernameLower: 'root' });
+		alice = await createUser({ username: 'alice', usernameLower: 'alice' });
+		bob = await createUser({ username: 'bob', usernameLower: 'bob' });
 	});
 
 	afterEach(async () => {
-		await usersRepository.delete({});
-		await userProfilesRepository.delete({});
-		await flashsRepository.delete({});
+		await usersRepository.createQueryBuilder().delete().execute();
+		await userProfilesRepository.createQueryBuilder().delete().execute();
+		await flashsRepository.createQueryBuilder().delete().execute();
+		await flashLikesRepository.createQueryBuilder().delete().execute();
 	});
 
 	afterAll(async () => {
