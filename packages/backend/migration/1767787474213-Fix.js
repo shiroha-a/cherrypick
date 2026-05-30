@@ -7,41 +7,44 @@ export class Fix1767787474213 {
     name = 'Fix1767787474213'
 
     async up(queryRunner) {
+        // フォーク(yojo-art系)のDBは生成済みインデックス名がCherryPick系と異なるため、
+        // 想定する旧オブジェクトが存在しない/新オブジェクトが既に存在するケースがある。
+        // どの初期状態からでも同じ最終スキーマへ収束するよう冪等化している。
         await queryRunner.query(`DELETE FROM "renote_muting" WHERE "muteeId" NOT IN (SELECT "id" FROM "user")`);
         await queryRunner.query(`DELETE FROM "renote_muting" WHERE "muterId" NOT IN (SELECT "id" FROM "user")`);
-        await queryRunner.query(`ALTER TABLE "poll_vote" DROP CONSTRAINT "FK_poll_vote_poll"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2cd3b2a6b4cf0b910b260afe08"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_renote_muting_muteeId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_renote_muting_muterId"`);
+        await queryRunner.query(`ALTER TABLE "poll_vote" DROP CONSTRAINT IF EXISTS "FK_poll_vote_poll"`);
+        await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_2cd3b2a6b4cf0b910b260afe08"`);
+        await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_renote_muting_muteeId"`);
+        await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_renote_muting_muterId"`);
         await queryRunner.query(`COMMENT ON COLUMN "ad"."startsAt" IS 'The expired date of the Ad.'`);
         await queryRunner.query(`ALTER TABLE "antenna" ALTER COLUMN "lastUsedAt" DROP DEFAULT`);
         await queryRunner.query(`ALTER TABLE "meta" ALTER COLUMN "mascotImageUrl" DROP DEFAULT`);
         await queryRunner.query(`ALTER TABLE "meta" ALTER COLUMN "preservedUsernames" SET DEFAULT '{ "admin", "administrator", "root", "system", "maintainer", "host", "mod", "moderator", "owner", "superuser", "staff", "auth", "i", "me", "everyone", "all", "mention", "mentions", "example", "user", "users", "account", "accounts", "official", "help", "helps", "support", "supports", "info", "information", "informations", "announce", "announces", "announcement", "announcements", "notice", "notification", "notifications", "dev", "developer", "developers", "tech", "misskey" }'`);
         await queryRunner.query(`COMMENT ON COLUMN "renote_muting"."muteeId" IS 'The mutee user ID.'`);
         await queryRunner.query(`COMMENT ON COLUMN "renote_muting"."muterId" IS 'The muter user ID.'`);
-        await queryRunner.query(`ALTER TABLE "poll" DROP CONSTRAINT "FK_da851e06d0dfe2ef397d8b1bf1b"`);
-        await queryRunner.query(`ALTER TABLE "poll" DROP CONSTRAINT "UQ_da851e06d0dfe2ef397d8b1bf1b"`);
-        await queryRunner.query(`ALTER TABLE "promo_note" DROP CONSTRAINT "FK_e263909ca4fe5d57f8d4230dd5c"`);
-        await queryRunner.query(`ALTER TABLE "promo_note" DROP CONSTRAINT "UQ_e263909ca4fe5d57f8d4230dd5c"`);
-        await queryRunner.query(`ALTER TABLE "user_keypair" DROP CONSTRAINT "FK_f4853eb41ab722fe05f81cedeb6"`);
-        await queryRunner.query(`ALTER TABLE "user_keypair" DROP CONSTRAINT "UQ_f4853eb41ab722fe05f81cedeb6"`);
-        await queryRunner.query(`ALTER TABLE "user_profile" DROP CONSTRAINT "FK_51cb79b5555effaf7d69ba1cff9"`);
-        await queryRunner.query(`ALTER TABLE "user_profile" DROP CONSTRAINT "UQ_51cb79b5555effaf7d69ba1cff9"`);
-        await queryRunner.query(`ALTER TABLE "user_publickey" DROP CONSTRAINT "FK_10c146e4b39b443ede016f6736d"`);
-        await queryRunner.query(`ALTER TABLE "user_publickey" DROP CONSTRAINT "UQ_10c146e4b39b443ede016f6736d"`);
-        await queryRunner.query(`CREATE INDEX "IDX_3fcc2c589eaefc205e0714b99c" ON "ad" ("startsAt") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_c71faf11f0a28a5c0bb506203c" ON "channel_favorite" ("userId", "channelId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f7b9d338207e40e768e4a5265a" ON "instance" ("firstRetrievedAt") `);
-        await queryRunner.query(`CREATE INDEX "IDX_7eac97594bcac5ffcf2068089b" ON "renote_muting" ("muteeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_7aa72a5fe76019bfe8e5e0e8b7" ON "renote_muting" ("muterId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_0d801c609cec4e9eb4b6b4490c" ON "renote_muting" ("muterId", "muteeId") `);
-        await queryRunner.query(`ALTER TABLE "renote_muting" ADD CONSTRAINT "FK_7eac97594bcac5ffcf2068089b6" FOREIGN KEY ("muteeId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "renote_muting" ADD CONSTRAINT "FK_7aa72a5fe76019bfe8e5e0e8b7d" FOREIGN KEY ("muterId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "poll" ADD CONSTRAINT "FK_da851e06d0dfe2ef397d8b1bf1b" FOREIGN KEY ("noteId") REFERENCES "note"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "promo_note" ADD CONSTRAINT "FK_e263909ca4fe5d57f8d4230dd5c" FOREIGN KEY ("noteId") REFERENCES "note"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "user_keypair" ADD CONSTRAINT "FK_f4853eb41ab722fe05f81cedeb6" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "user_profile" ADD CONSTRAINT "FK_51cb79b5555effaf7d69ba1cff9" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "user_publickey" ADD CONSTRAINT "FK_10c146e4b39b443ede016f6736d" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "poll" DROP CONSTRAINT IF EXISTS "FK_da851e06d0dfe2ef397d8b1bf1b"`);
+        await queryRunner.query(`ALTER TABLE "poll" DROP CONSTRAINT IF EXISTS "UQ_da851e06d0dfe2ef397d8b1bf1b"`);
+        await queryRunner.query(`ALTER TABLE "promo_note" DROP CONSTRAINT IF EXISTS "FK_e263909ca4fe5d57f8d4230dd5c"`);
+        await queryRunner.query(`ALTER TABLE "promo_note" DROP CONSTRAINT IF EXISTS "UQ_e263909ca4fe5d57f8d4230dd5c"`);
+        await queryRunner.query(`ALTER TABLE "user_keypair" DROP CONSTRAINT IF EXISTS "FK_f4853eb41ab722fe05f81cedeb6"`);
+        await queryRunner.query(`ALTER TABLE "user_keypair" DROP CONSTRAINT IF EXISTS "UQ_f4853eb41ab722fe05f81cedeb6"`);
+        await queryRunner.query(`ALTER TABLE "user_profile" DROP CONSTRAINT IF EXISTS "FK_51cb79b5555effaf7d69ba1cff9"`);
+        await queryRunner.query(`ALTER TABLE "user_profile" DROP CONSTRAINT IF EXISTS "UQ_51cb79b5555effaf7d69ba1cff9"`);
+        await queryRunner.query(`ALTER TABLE "user_publickey" DROP CONSTRAINT IF EXISTS "FK_10c146e4b39b443ede016f6736d"`);
+        await queryRunner.query(`ALTER TABLE "user_publickey" DROP CONSTRAINT IF EXISTS "UQ_10c146e4b39b443ede016f6736d"`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_3fcc2c589eaefc205e0714b99c" ON "ad" ("startsAt") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS "IDX_c71faf11f0a28a5c0bb506203c" ON "channel_favorite" ("userId", "channelId") `);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_f7b9d338207e40e768e4a5265a" ON "instance" ("firstRetrievedAt") `);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_7eac97594bcac5ffcf2068089b" ON "renote_muting" ("muteeId") `);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_7aa72a5fe76019bfe8e5e0e8b7" ON "renote_muting" ("muterId") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS "IDX_0d801c609cec4e9eb4b6b4490c" ON "renote_muting" ("muterId", "muteeId") `);
+        await queryRunner.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_7eac97594bcac5ffcf2068089b6') THEN ALTER TABLE "renote_muting" ADD CONSTRAINT "FK_7eac97594bcac5ffcf2068089b6" FOREIGN KEY ("muteeId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION; END IF; END $$;`);
+        await queryRunner.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_7aa72a5fe76019bfe8e5e0e8b7d') THEN ALTER TABLE "renote_muting" ADD CONSTRAINT "FK_7aa72a5fe76019bfe8e5e0e8b7d" FOREIGN KEY ("muterId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION; END IF; END $$;`);
+        await queryRunner.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_da851e06d0dfe2ef397d8b1bf1b') THEN ALTER TABLE "poll" ADD CONSTRAINT "FK_da851e06d0dfe2ef397d8b1bf1b" FOREIGN KEY ("noteId") REFERENCES "note"("id") ON DELETE CASCADE ON UPDATE NO ACTION; END IF; END $$;`);
+        await queryRunner.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_e263909ca4fe5d57f8d4230dd5c') THEN ALTER TABLE "promo_note" ADD CONSTRAINT "FK_e263909ca4fe5d57f8d4230dd5c" FOREIGN KEY ("noteId") REFERENCES "note"("id") ON DELETE CASCADE ON UPDATE NO ACTION; END IF; END $$;`);
+        await queryRunner.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_f4853eb41ab722fe05f81cedeb6') THEN ALTER TABLE "user_keypair" ADD CONSTRAINT "FK_f4853eb41ab722fe05f81cedeb6" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION; END IF; END $$;`);
+        await queryRunner.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_51cb79b5555effaf7d69ba1cff9') THEN ALTER TABLE "user_profile" ADD CONSTRAINT "FK_51cb79b5555effaf7d69ba1cff9" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION; END IF; END $$;`);
+        await queryRunner.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_10c146e4b39b443ede016f6736d') THEN ALTER TABLE "user_publickey" ADD CONSTRAINT "FK_10c146e4b39b443ede016f6736d" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION; END IF; END $$;`);
     }
 
     async down(queryRunner) {
