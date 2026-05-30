@@ -10,6 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	:class="[$style.root]"
 	:tabindex="isDeleted ? '-1' : '0'"
 >
+	<EmNoteSub v-if="appearNote.reply" :note="appearNote.reply" :class="$style.replyTo"/>
 	<div v-if="pinned" :class="$style.tip"><i class="ti ti-pin"></i> {{ i18n.ts.pinnedNote }}</div>
 	<!--<div v-if="appearNote._prId_" class="tip"><i class="ti ti-speakerphone"></i> {{ i18n.ts.promotion }}<button class="_textButton hide" @click="readPromo()">{{ i18n.ts.hideThisNote }} <i class="ti ti-x"></i></button></div>-->
 	<!--<div v-if="appearNote._featuredId_" class="tip"><i class="ti ti-bolt"></i> {{ i18n.ts.featured }}</div>-->
@@ -25,6 +26,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</template>
 		</I18n>
 		<div :class="$style.renoteInfo">
+			<button ref="renoteTime" :class="$style.renoteTime" class="_button">
+				<i class="ti ti-dots" :class="$style.renoteMenu"></i>
+				<EmTime :time="note.createdAt"/>
+			</button>
 			<span v-if="note.visibility !== 'public'" style="margin-left: 0.5em;" :title="i18n.ts._visibility[note.visibility]">
 				<i v-if="note.visibility === 'home'" class="ti ti-home"></i>
 				<i v-else-if="note.visibility === 'followers'" class="ti ti-lock"></i>
@@ -38,23 +43,18 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</span>
 			<span v-if="note.localOnly" style="margin-left: 0.5em;" :title="i18n.ts._visibility['disableFederation']"><i class="ti ti-rocket-off"></i></span>
 			<span v-if="note.channel" style="margin-left: 0.5em;" :title="note.channel.name"><i class="ti ti-device-tv"></i></span>
-			<span :class="$style.renoteTime">
-				<button ref="renoteTime" class="_button">
-					<i class="ti ti-dots" :class="$style.renoteMenu"></i>
-				</button>
-				<MkA :to="notePage(note)">
-					<EmTime :time="note.createdAt"/>
-				</MkA>
-			</span>
 		</div>
 	</div>
-	<EmNoteSub v-if="appearNote.reply" :note="appearNote.reply" :class="$style.replyTo"/>
 	<article :class="$style.article">
 		<div v-if="appearNote.channel" :class="$style.colorBar" :style="{ background: appearNote.channel.color }"></div>
 		<EmAvatar :class="$style.avatar" :user="appearNote.user" link/>
 		<div :class="$style.main">
 			<EmNoteHeader :note="appearNote" :mini="true"/>
 			<div style="container-type: inline-size;">
+				<div v-if="appearNote.replyId" style="margin-bottom: 4px;">
+					<EmA :class="$style.replyIcon" :to="`/notes/${appearNote.replyId}`" @click.stop><i class="ti ti-arrow-back-up"></i></EmA>
+					<EmA v-user-preview="appearNote.reply.userId" :class="$style.replyToText" :to="userPage(appearNote.reply.user)" @click.stop><span v-html="replyTo"></span></EmA>
+				</div>
 				<p v-if="appearNote.cw != null" :class="$style.cw">
 					<EmMfm v-if="appearNote.cw != ''" style="margin-right: 8px;" :text="appearNote.cw" :author="appearNote.user" :nyaize="'respect'"/>
 					<button style="display: block; width: 100%; margin: 4px 0;" class="_buttonGray _buttonRounded" @click="showContent = !showContent">{{ showContent ? i18n.ts._cw.hide : i18n.ts._cw.show }}</button>
@@ -62,10 +62,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<div v-show="appearNote.cw == null || showContent" :class="[{ [$style.contentCollapsed]: collapsed }]">
 					<div :class="$style.text">
 						<span v-if="appearNote.isHidden" style="opacity: 0.5">({{ i18n.ts.private }})</span>
-						<div v-if="appearNote.replyId" style="margin-bottom: 4px;">
-							<EmA :class="$style.replyIcon" :to="`/notes/${appearNote.replyId}`" @click.stop><i class="ti ti-arrow-back-up"></i></EmA>
-							<EmA v-user-preview="appearNote.reply.userId" :class="$style.replyToText" :to="userPage(appearNote.reply.user)" @click.stop><span v-html="replyTo"></span></EmA>
-						</div>
+						<EmA v-if="appearNote.replyId" :class="$style.replyIcon" :to="`/notes/${appearNote.replyId}`"><i class="ti ti-arrow-back-up"></i></EmA>
 						<EmMfm
 							v-if="appearNote.text"
 							:parsedNodes="parsed"
@@ -103,7 +100,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</a>
 				<a :href="`/notes/${appearNote.id}`" target="_blank" rel="noopener" :class="[$style.footerButton, $style.footerButtonLink]" class="_button">
 					<i class="ti ti-repeat"></i>
-					<p v-if="appearNote.renoteCount > 0" :class="$style.noteFooterButtonCount">{{ (appearNote.renoteCount) }}</p>
+					<p v-if="appearNote.renoteCount > 0" :class="$style.footerButtonCount">{{ (appearNote.renoteCount) }}</p>
 				</a>
 				<a :href="`/notes/${appearNote.id}`" target="_blank" rel="noopener" :class="[$style.footerButton, $style.footerButtonLink]" class="_button">
 					<i v-if="appearNote.reactionAcceptance === 'likeOnly'" class="ti ti-heart"></i>
@@ -128,6 +125,7 @@ import * as mfm from 'mfc-js';
 import * as Misskey from 'cherrypick-js';
 import { shouldCollapsed, shouldMfmCollapsed } from '@@/js/collapsed.js';
 import { url } from '@@/js/config.js';
+import { toUnicode } from 'punycode.js';
 import I18n from '@/components/I18n.vue';
 import EmNoteSub from '@/components/EmNoteSub.vue';
 import EmNoteHeader from '@/components/EmNoteHeader.vue';
@@ -142,6 +140,7 @@ import EmUserName from '@/components/EmUserName.vue';
 import EmTime from '@/components/EmTime.vue';
 import { userPage } from '@/utils.js';
 import { i18n } from '@/i18n.js';
+import { notePage } from '@/utils.js';
 
 function getAppearNote(note: Misskey.entities.Note) {
 	return Misskey.note.isPureRenote(note) ? note.renote : note;
@@ -175,9 +174,9 @@ const collapsed = ref(appearNote.value.cw == null && (isLong || (isMFM)));
 const isDeleted = ref(false);
 
 const replyTo = computed(() => {
-	const username = appearNote.value.reply.user.username;
+	const username = appearNote.value.reply.user.host == null ? `@${appearNote.value.reply.user.username}` : `@${appearNote.value.reply.user.username}@${toUnicode(appearNote.value.reply.user.host)}`;
 	const text = i18n.tsx.replyTo({ user: username });
-	const user = `<span style="color: var(--MI_THEME-accent); margin-right: 0.25em;">@${username}</span>`;
+	const user = `<span style="color: var(--MI_THEME-accent); margin-right: 0.25em;">${username}</span>`;
 
 	return text.replace(username, user);
 });
@@ -363,6 +362,7 @@ const replyTo = computed(() => {
 
 .article {
 	position: relative;
+	display: flex;
 	padding: 28px 32px;
 	-webkit-tap-highlight-color: transparent;
 }
@@ -556,6 +556,10 @@ const replyTo = computed(() => {
 @container (max-width: 500px) {
 	.root {
 		font-size: 0.9em;
+	}
+
+	.renote {
+		padding: 10px 22px 0 22px;
 	}
 
 	.article {

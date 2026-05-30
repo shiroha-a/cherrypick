@@ -4,32 +4,36 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<XColumn :column="column" :isStacked="isStacked" :menu="menu" :refresher="async () => { await notificationsComponent?.reload() }">
+<XColumn :column="column" :isStacked="isStacked" :menu="menu" :refresher="reload">
 	<template #header><i class="ti ti-bell" style="margin-right: 8px;"></i>{{ column.name || i18n.ts._deck._columns.notifications }}</template>
 
-	<XNotifications ref="notificationsComponent" :excludeTypes="props.column.excludeTypes"/>
+	<MkStreamingNotificationsTimeline ref="notificationsComponent" :excludeTypes="props.column.excludeTypes"/>
 </XColumn>
 </template>
 
 <script lang="ts" setup>
-import { defineAsyncComponent, shallowRef } from 'vue';
+import { defineAsyncComponent, useTemplateRef } from 'vue';
 import XColumn from './column.vue';
-import { updateColumn } from './deck-store.js';
-import type { Column } from './deck-store.js';
-import XNotifications from '@/components/MkNotifications.vue';
+import type { Column } from '@/deck.js';
+import { updateColumn } from '@/deck.js';
+import MkStreamingNotificationsTimeline from '@/components/MkStreamingNotificationsTimeline.vue';
 import * as os from '@/os.js';
 import { i18n } from '@/i18n.js';
-import { flushNotification } from '@/scripts/check-nortification-delete.js';
+import { flushNotification } from '@/utility/check-nortification-delete.js';
 
 const props = defineProps<{
 	column: Column;
 	isStacked: boolean;
 }>();
 
-const notificationsComponent = shallowRef<InstanceType<typeof XNotifications>>();
+const notificationsComponent = useTemplateRef('notificationsComponent');
 
-function func() {
-	const { dispose } = os.popup(defineAsyncComponent(() => import('@/components/MkNotificationSelectWindow.vue')), {
+async function reload() {
+	await notificationsComponent.value?.reload();
+}
+
+async function func() {
+	const { dispose } = await os.popupAsyncWithDialog(import('@/components/MkNotificationSelectWindow.vue').then(x => x.default), {
 		excludeTypes: props.column.excludeTypes,
 	}, {
 		done: async (res) => {

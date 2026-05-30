@@ -41,7 +41,6 @@ describe('ユーザー', () => {
 			isLocked: user.isLocked,
 			isBot: user.isBot,
 			isCat: user.isCat,
-			isProxy: user.isProxy,
 			instance: user.instance,
 			emojis: user.emojis,
 			onlineStatus: user.onlineStatus,
@@ -87,6 +86,8 @@ describe('ユーザー', () => {
 			publicReactions: user.publicReactions,
 			followingVisibility: user.followingVisibility,
 			followersVisibility: user.followersVisibility,
+			chatScope: user.chatScope,
+			canChat: user.canChat,
 			roles: user.roles,
 			memo: user.memo,
 		});
@@ -133,10 +134,10 @@ describe('ユーザー', () => {
 			hideOnlineStatus: user.hideOnlineStatus,
 			hasUnreadSpecifiedNotes: user.hasUnreadSpecifiedNotes,
 			hasUnreadMentions: user.hasUnreadMentions,
-			hasUnreadMessagingMessage: user.hasUnreadMessagingMessage,
 			hasUnreadAnnouncement: user.hasUnreadAnnouncement,
 			hasUnreadAntenna: user.hasUnreadAntenna,
 			hasUnreadChannel: user.hasUnreadChannel,
+			hasUnreadChatMessages: user.hasUnreadChatMessages,
 			hasUnreadNotification: user.hasUnreadNotification,
 			unreadNotificationsCount: user.unreadNotificationsCount,
 			hasPendingReceivedFollowRequest: user.hasPendingReceivedFollowRequest,
@@ -316,7 +317,6 @@ describe('ユーザー', () => {
 		assert.strictEqual(response.isLocked, false);
 		assert.strictEqual(response.isBot, false);
 		assert.strictEqual(response.isCat, false);
-		assert.strictEqual(response.isProxy, false);
 		assert.strictEqual(response.instance, undefined);
 		assert.deepStrictEqual(response.emojis, {});
 		assert.strictEqual(response.onlineStatus, 'unknown');
@@ -349,6 +349,8 @@ describe('ユーザー', () => {
 		assert.strictEqual(response.publicReactions, true);
 		assert.strictEqual(response.followingVisibility, 'public');
 		assert.strictEqual(response.followersVisibility, 'public');
+		assert.strictEqual(response.chatScope, 'mutual');
+		assert.strictEqual(response.canChat, true);
 		assert.deepStrictEqual(response.roles, []);
 		assert.strictEqual(response.memo, null);
 
@@ -372,10 +374,10 @@ describe('ユーザー', () => {
 		assert.strictEqual(response.hideOnlineStatus, false);
 		assert.strictEqual(response.hasUnreadSpecifiedNotes, false);
 		assert.strictEqual(response.hasUnreadMentions, false);
-		assert.strictEqual(response.hasUnreadMessagingMessage, false);
 		assert.strictEqual(response.hasUnreadAnnouncement, false);
 		assert.strictEqual(response.hasUnreadAntenna, false);
 		assert.strictEqual(response.hasUnreadChannel, false);
+		assert.strictEqual(response.hasUnreadChatMessages, false);
 		assert.strictEqual(response.hasUnreadNotification, false);
 		assert.strictEqual(response.unreadNotificationsCount, 0);
 		assert.strictEqual(response.hasPendingReceivedFollowRequest, false);
@@ -741,7 +743,7 @@ describe('ユーザー', () => {
 	});
 	test.each([
 		{ label: '「見つけやすくする」がOFFのユーザーが含まれる', user: () => userNotExplorable },
-		{ label: 'ミュートユーザーが含まれる', user: () => userMutedByAlice },
+		{ label: 'ミュートユーザーが含まれない', user: () => userMutedByAlice, excluded: true },
 		{ label: 'ブロックされているユーザーが含まれる', user: () => userBlockedByAlice },
 		{ label: 'ブロックしてきているユーザーが含まれる', user: () => userBlockingAlice },
 		{ label: '承認制ユーザーが含まれる', user: () => userLocking },

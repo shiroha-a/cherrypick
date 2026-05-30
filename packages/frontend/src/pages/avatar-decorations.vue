@@ -4,9 +4,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<MkStickyContainer>
-	<template #header><MkPageHeader v-model:tab="tab" :actions="headerActions" :tabs="headerTabs"/></template>
-	<MkSpacer :contentMax="900">
+<PageWithHeader v-model:tab="tab" :actions="headerActions" :tabs="headerTabs">
+	<div class="_spacer" style="--MI_SPACER-w: 900px;">
 		<div class="_gaps">
 			<div v-if="tab === 'local'" :class="$style.decorations">
 				<div
@@ -33,21 +32,21 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 		</div>
-	</MkSpacer>
-</MkStickyContainer>
+	</div>
+</PageWithHeader>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, defineAsyncComponent, watch } from 'vue';
 import * as Misskey from 'cherrypick-js';
-import { signinRequired } from '@/account.js';
+import { ensureSignin } from '@/i.js';
 import * as os from '@/os.js';
-import { misskeyApi } from '@/scripts/misskey-api.js';
+import { misskeyApi } from '@/utility/misskey-api.js';
 import { i18n } from '@/i18n.js';
-import { definePageMetadata } from '@/scripts/page-metadata.js';
+import { definePage } from '@/page.js';
 import MkRemoteAvatarDecorationEditDialog from '@/components/MkRemoteAvatarDecorationEditDialog.vue';
 
-const $i = signinRequired();
+const $i = ensureSignin();
 
 const tab = ref('local');
 const avatarDecorations = ref<Misskey.entities.AdminAvatarDecorationsListResponse>([]);
@@ -66,7 +65,7 @@ function remoteLoad() {
 }
 
 async function add(ev: MouseEvent) {
-	const { dispose } = os.popup(defineAsyncComponent(() => import('./avatar-decoration-edit-dialog.vue')), {
+	const { dispose } = await os.popupAsyncWithDialog(import('./avatar-decoration-edit-dialog.vue').then(x => x.default), {
 	}, {
 		done: result => {
 			if (result.created) {
@@ -77,8 +76,8 @@ async function add(ev: MouseEvent) {
 	});
 }
 
-function edit(avatarDecoration) {
-	const { dispose } = os.popup(defineAsyncComponent(() => import('./avatar-decoration-edit-dialog.vue')), {
+async function edit(avatarDecoration) {
+	const { dispose } = await os.popupAsyncWithDialog(import('./avatar-decoration-edit-dialog.vue').then(x => x.default), {
 		avatarDecoration: avatarDecoration,
 	}, {
 		done: result => {
@@ -153,7 +152,7 @@ watch(tab, (newTab) => {
 	}
 }, { immediate: true });
 
-definePageMetadata(() => ({
+definePage(() => ({
 	title: i18n.ts.avatarDecorations,
 	icon: 'ti ti-sparkles',
 }));

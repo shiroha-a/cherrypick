@@ -4,7 +4,7 @@
  */
 
 import { HttpResponse, http } from 'msw';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { expect, userEvent, within } from '@storybook/test';
 import { channel } from '../../.storybook/fakes.js';
 import { commonHandlers } from '../../.storybook/mocks.js';
@@ -13,7 +13,7 @@ import type { StoryObj } from '@storybook/vue3';
 import { i18n } from '@/i18n.js';
 
 function sleep(ms: number) {
-	return new Promise(resolve => setTimeout(resolve, ms));
+	return new Promise(resolve => window.setTimeout(resolve, ms));
 }
 
 export const Default = {

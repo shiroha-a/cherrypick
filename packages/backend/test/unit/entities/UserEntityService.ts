@@ -51,6 +51,8 @@ import { ReactionService } from '@/core/ReactionService.js';
 import { NotificationService } from '@/core/NotificationService.js';
 import { ReactionsBufferingService } from '@/core/ReactionsBufferingService.js';
 import { ApClipService } from '@/core/activitypub/models/ApClipService.js';
+import { ChatService } from '@/core/ChatService.js';
+import { SystemAccountService } from '@/core/SystemAccountService.js';
 
 process.env.NODE_ENV = 'test';
 
@@ -74,7 +76,7 @@ describe('UserEntityService', () => {
 					...userData,
 					id: genAidx(Date.now()),
 					username: un,
-					usernameLower: un,
+					usernameLower: un.toLowerCase(),
 				})
 				.then(x => usersRepository.findOneByOrFail(x.identifiers[0]));
 
@@ -174,6 +176,8 @@ describe('UserEntityService', () => {
 				ReactionsBufferingService,
 				NotificationService,
 				ApClipService,
+				ChatService,
+				SystemAccountService,
 			];
 
 			app = await Test.createTestingModule({
@@ -232,7 +236,7 @@ describe('UserEntityService', () => {
 		});
 
 		test('MeDetailed', async() => {
-			const achievements = [{ name: 'achievement', unlockedAt: new Date().getTime() }];
+			const achievements = [{ name: 'iLoveCherryPick' as const, unlockedAt: new Date().getTime() }];
 			const me = await createUser({}, {
 				birthday: '2000-01-01',
 				achievements: achievements,

@@ -1,31 +1,31 @@
-import { defaultStore } from '@/store.js';
+/*
+ * SPDX-FileCopyrightText: syuilo and misskey-project & noridev and cherrypick-project
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
 
-defaultStore.reactiveState.useSearchConversionSyntax = {
-    where: 'device',
-    default: true,
-};
+import { store } from '@/store.js';
 
 export function convertSearchSyntax(text: string | null): string | null {
-    if (!text || !defaultStore.state.useSearchConversionSyntax) {
-        return text;
-    }
+	if (!text || !store.s.useSearchConversionSyntax) {
+		return text;
+	}
 
-    const searchKeywords = [
-        '検索',
-        'Search',
-        'search',
-        '검색'
-    ];
+	const searchKeywords = [
+		'検索',
+		'Search',
+		'search',
+		'검색',
+	];
 
-    const searchPattern = new RegExp(`^(.*?)\\s+(${searchKeywords.join('|')})$`);
+	const searchPattern = new RegExp(`^(.*?)\\s+(${searchKeywords.join('|')})$`);
 
-    const lines = text.split('\n');
-    const convertedLines = lines.map(line => {
-        if (searchPattern.test(line)) {
-            return line.replace(searchPattern, '$1 [検索]');
-        }
-        return line;
-    });
+	const lines = text.split('\n');
+	const convertedLines = lines.map(line => {
+		if (searchPattern.test(line)) {
+			return line.replace(searchPattern, '$1 [検索]');
+		}
+		return line;
+	});
 
-    return convertedLines.join('\n');
+	return convertedLines.join('\n');
 }

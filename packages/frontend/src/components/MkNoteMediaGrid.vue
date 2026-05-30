@@ -7,38 +7,64 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template v-for="file in note.files">
 	<div
 		v-if="(((
-			(defaultStore.state.nsfw === 'force' || file.isSensitive)
-		) || (defaultStore.state.dataSaver.media && file.type.startsWith('image/'))) &&
+			(prefer.s.nsfw === 'force' || file.isSensitive) &&
+			prefer.s.nsfw !== 'ignore'
+		) || (prefer.s.dataSaver.media && file.type.startsWith('image/'))) &&
 			!showingFiles.has(file.id)
 		)"
 		:class="[$style.filePreview, { [$style.square]: square }]"
+		:data-scroll-anchor="file.id"
 		@click="onClick($event, file)"
 		@dblclick="onDblClick(file)"
 	>
 		<MkDriveFileThumbnail
 			:file="file"
 			fit="cover"
-			:highlightWhenSensitive="defaultStore.state.highlightSensitiveMedia"
+			:highlightWhenSensitive="prefer.s.highlightSensitiveMedia"
 			:forceBlurhash="true"
 			:large="true"
 			:class="$style.file"
 		/>
+		<div v-if="isTimeline" :class="$style.bottom">
+			<MkAvatar v-if="!prefer.s.hideAvatarsInNote" :class="$style.avatar" :user="note.user" link preview noteClick/>
+			<div style="white-space: nowrap;">
+				<MkA v-user-preview="note.user.id" :class="$style.name" :to="userPage(note.user)" noteClick>
+					<MkUserName :user="note.user"/>
+				</MkA>
+				<div :class="$style.username"><MkAcct :user="note.user"/></div>
+			</div>
+		</div>
+		<div :class="[$style.time, { [$style.isTimeline]: isTimeline }]">
+			<MkTime :time="note.createdAt" :mode="prefer.s.enableAbsoluteTime ? 'absolute' : 'relative'" colored/>
+		</div>
 		<div :class="$style.sensitive">
 			<div>
-				<div v-if="file.isSensitive"><i class="ti ti-eye-exclamation"></i> {{ i18n.ts.sensitive }}{{ defaultStore.state.dataSaver.media && file.size ? ` (${bytes(file.size)})` : '' }}</div>
-				<div v-else><i class="ti ti-photo"></i> {{ defaultStore.state.dataSaver.media && file.size ? bytes(file.size) : i18n.ts.image }}</div>
+				<div v-if="file.isSensitive"><i class="ti ti-eye-exclamation"></i> {{ i18n.ts.sensitive }}{{ prefer.s.dataSaver.media && file.size ? ` (${bytes(file.size)})` : '' }}</div>
+				<div v-else><i class="ti ti-photo"></i> {{ prefer.s.dataSaver.media && file.size ? bytes(file.size) : i18n.ts.image }}</div>
 				<div>{{ i18n.ts.clickToShow }}</div>
 			</div>
 		</div>
 	</div>
-	<MkA v-else :class="[$style.filePreview, { [$style.square]: square }]" :to="notePage(note)">
+	<MkA v-else :class="[$style.filePreview, { [$style.square]: square }]" :data-scroll-anchor="file.id" :to="notePage(note)">
 		<MkDriveFileThumbnail
 			:file="file"
 			fit="cover"
-			:highlightWhenSensitive="defaultStore.state.highlightSensitiveMedia"
+			:highlightWhenSensitive="prefer.s.highlightSensitiveMedia"
 			:large="true"
 			:class="$style.file"
 		/>
+		<div v-if="isTimeline" :class="$style.bottom">
+			<MkAvatar v-if="!prefer.s.hideAvatarsInNote" :class="$style.avatar" :user="note.user" link preview noteClick/>
+			<div style="white-space: nowrap;">
+				<MkA v-user-preview="note.user.id" :class="$style.name" :to="userPage(note.user)" noteClick>
+					<MkUserName :user="note.user"/>
+				</MkA>
+				<div :class="$style.username"><MkAcct :user="note.user"/></div>
+			</div>
+		</div>
+		<div :class="[$style.time, { [$style.isTimeline]: isTimeline }]">
+			<MkTime :time="note.createdAt" :mode="prefer.s.enableAbsoluteTime ? 'absolute' : 'relative'" colored/>
+		</div>
 		<div :class="$style.indicators">
 			<div v-if="['image/gif'].includes(file.type)" :class="$style.indicator">GIF</div>
 			<div v-if="['image/apng'].includes(file.type)" :class="$style.indicator">APNG</div>
@@ -55,26 +81,28 @@ import * as Misskey from 'cherrypick-js';
 import * as os from '@/os.js';
 import { notePage } from '@/filters/note.js';
 import { i18n } from '@/i18n.js';
-import { defaultStore } from '@/store.js';
+import { prefer } from '@/preferences.js';
 import bytes from '@/filters/bytes.js';
-import { confirmR18, wasConfirmR18 } from '@/scripts/check-r18';
+import { confirmR18, wasConfirmR18 } from '@/utility/check-r18';
 
 import MkDriveFileThumbnail from '@/components/MkDriveFileThumbnail.vue';
 import MkRippleEffect from '@/components/MkRippleEffect.vue';
+import { userPage } from '@/filters/user.js';
 
 const props = defineProps<{
 	note: Misskey.entities.Note;
 	square?: boolean;
+	isTimeline?: boolean;
 }>();
 
 const showingFiles = ref<Set<string>>(new Set());
 watch(() => props.note.files, () => {
 	if (!props.note.files) return;
 	for (const file of props.note.files) {
-		if (defaultStore.state.nsfw === 'force' || defaultStore.state.dataSaver.media) {
+		if (prefer.s.nsfw === 'force' || prefer.s.dataSaver.media) {
 			//nop
 		} else if (file.isSensitive) {
-			if (defaultStore.state.nsfw !== 'ignore') {
+			if (prefer.s.nsfw !== 'ignore') {
 				//nop
 			} else {
 				if (wasConfirmR18()) {
@@ -93,7 +121,7 @@ watch(() => props.note.files, () => {
 async function onClick(ev: MouseEvent, image: Misskey.entities.DriveFile) {
 	if (!showingFiles.value.has(image.id)) {
 		ev.stopPropagation();
-		if (image.isSensitive && defaultStore.state.confirmWhenRevealingSensitiveMedia) {
+		if (image.isSensitive && prefer.s.confirmWhenRevealingSensitiveMedia) {
 			if (wasConfirmR18()) {
 				const { canceled } = await os.confirm({
 					type: 'question',
@@ -107,15 +135,15 @@ async function onClick(ev: MouseEvent, image: Misskey.entities.DriveFile) {
 		}
 	}
 
-	if (defaultStore.state.nsfwOpenBehavior === 'doubleClick') os.popup(MkRippleEffect, { x: ev.clientX, y: ev.clientY }, {});
-	if (defaultStore.state.nsfwOpenBehavior === 'click') {
+	if (prefer.s.nsfwOpenBehavior === 'doubleClick') os.popup(MkRippleEffect, { x: ev.clientX, y: ev.clientY }, {});
+	if (prefer.s.nsfwOpenBehavior === 'click') {
 		if (image.isSensitive && !await confirmR18()) return;
 		showingFiles.value.add(image.id);
 	}
 }
 
 async function onDblClick(image: Misskey.entities.DriveFile) {
-	if (!showingFiles.value.has(image.id) && defaultStore.state.nsfwOpenBehavior === 'doubleClick') {
+	if (!showingFiles.value.has(image.id) && prefer.s.nsfwOpenBehavior === 'doubleClick') {
 		if (image.isSensitive && !await confirmR18()) return;
 		showingFiles.value.add(image.id);
 	}
@@ -161,6 +189,7 @@ async function onDblClick(image: Misskey.entities.DriveFile) {
 	font-size: 0.8em;
 	text-align: center;
 	padding: 8px;
+	border-radius: calc(var(--MI-radius) / 2);
 	box-sizing: border-box;
 	color: #fff;
 	background: rgba(0, 0, 0, 0.5);
@@ -182,10 +211,187 @@ async function onDblClick(image: Misskey.entities.DriveFile) {
 	/* Hardcode to black because either --MI_THEME-bg or --MI_THEME-fg makes it hard to read in dark/light mode */
 	background-color: black;
 	border-radius: 6px;
-	color: var(--MI_THEME-accentLighten);
+	color: hsl(from var(--MI_THEME-accent) h s calc(l + 10));
 	display: inline-block;
 	font-weight: bold;
 	font-size: 0.8em;
 	padding: 2px 5px;
+}
+
+.bottom {
+	display: inline-flex;
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+	//opacity: .7;
+	gap: 6px;
+	z-index: 1;
+
+	&::before {
+		content: '';
+		position: absolute;
+		bottom: -10px;
+		left: -10px;
+		right: -300px;
+		height: 80px;
+		background: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.7) 0%,
+			rgba(0, 0, 0, 0.4) 40%,
+			rgba(0, 0, 0, 0) 100%
+		);
+		pointer-events: none;
+		z-index: -1;
+		border-radius: calc(var(--MI-radius) / 2);
+	}
+}
+
+.avatar {
+	flex-shrink: 0;
+	display: block !important;
+	position: sticky !important;
+	margin: 0 3px 0 0;
+	width: 36px;
+	height: 36px;
+	background: var(--MI_THEME-panel);
+	filter: drop-shadow(0 0 1.5px #6060608a);
+}
+
+.name {
+	flex-shrink: 1;
+	display: block;
+	padding: 0;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	color: #fff;
+	font-size: 1em;
+	font-weight: bold;
+	text-decoration: none;
+	text-overflow: ellipsis;
+	max-width: 180px;
+	filter: drop-shadow(0 0 1.5px #6060608a);
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+
+	&:hover {
+		color: var(--MI_THEME-nameHover);
+		text-decoration: none;
+	}
+}
+
+.username {
+	flex-shrink: 9999999;
+	overflow: hidden;
+	color: #fff;
+	text-overflow: ellipsis;
+	font-size: .95em;
+	max-width: 180px;
+	filter: drop-shadow(0 0 1.5px #6060608a);
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+.name, .username {
+	max-width: 150px;
+}
+
+.time {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: absolute;
+	bottom: 5px;
+	right: 8px;
+	color: #fff;
+	text-decoration: none;
+	font-size: 1em;
+	z-index: 1;
+	filter: drop-shadow(0 0 1.5px #6060608a);
+
+	&.isTimeline {
+		bottom: 48px;
+		right: 10px;
+	}
+
+	&:hover {
+		text-decoration: none;
+	}
+}
+
+@container (max-width: 600px) {
+	.name, .username {
+		max-width: 130px;
+	}
+}
+
+@container (max-width: 550px) {
+	.bottom {
+		bottom: 9px;
+		left: 9px;
+	}
+
+	.avatar {
+		width: 32px;
+		height: 32px;
+	}
+
+	.name {
+		font-size: .9em;
+	}
+
+	.username {
+		font-size: .8em;
+	}
+
+	.name, .username {
+		max-width: 100px;
+	}
+
+	.time {
+		font-size: .8em;
+
+		&.isTimeline {
+			bottom: 38px;
+			right: 9px;
+		}
+	}
+}
+
+@container (max-width: 450px) {
+	.bottom {
+		display: initial;
+		bottom: 7.5px;
+		left: 7.5px;
+	}
+
+	.avatar {
+		width: 24px;
+		height: 24px;
+	}
+
+	.name {
+		font-size: .85em;
+	}
+
+	.username {
+		font-size: .75em;
+	}
+
+	.name, .username {
+		max-width: 84px;
+	}
+
+	.time {
+		font-size: .75em;
+
+		&.isTimeline {
+			bottom: 34px;
+			right: 7.5px;
+		}
+	}
 }
 </style>

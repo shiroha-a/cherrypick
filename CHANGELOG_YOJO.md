@@ -1,3 +1,178 @@
+## 1.7.4
+Cherrypick 4.17.0  
+Misskey 2025.10.2
+
+### Release Date
+2026-05-23
+
+### General
+
+### Client
+
+### Server
+- Fix: セキュリティに関する修正 (Cherry-picked from misskey 2026.5.4)
+
+## 1.7.3
+Cherrypick 4.17.0  
+Misskey 2025.10.2
+
+### Release Date
+2026-05-01
+
+### General
+
+### Client
+- Fix: 埋め込みが機能していない問題の修正 [#938](https://github.com/yojo-art/cherrypick/pull/938)
+- Fix: コードエディタのフォントをハイライト層と統一しズレを修正 [#939](https://github.com/yojo-art/cherrypick/pull/939)
+- Fix: リモート絵文字も絵文字情報が表示できるように [#951](https://github.com/yojo-art/cherrypick/pull/951)
+- Fix: 設定移行が永遠と繰り返すことがある問題の修正 [#955](https://github.com/yojo-art/cherrypick/pull/955)
+- Fix: 検索許可範囲が左端に表示されてしまう問題の修正 [#956](https://github.com/yojo-art/cherrypick/pull/956)
+- Fix: データセーバーウィジェットが動作していない問題の修正 [#958](https://github.com/yojo-art/cherrypick/pull/958)
+- Fix: アカウントの検索可能範囲が変更できない問題の修正 [#960](https://github.com/yojo-art/cherrypick/pull/960)
+- Fix: 高度な検索が動作するように [#961](https://github.com/yojo-art/cherrypick/pull/961)
+- Fix: ノート検索無効時はイベント検索も利用出来ない表示にするように [#963](https://github.com/yojo-art/cherrypick/pull/963)
+- Fix: Renoteの確認ポップアップ表示されるように [#971](https://github.com/yojo-art/cherrypick/pull/971)
+- Fix: リアクションから絵文字のインポートができない問題の修正 [#973](https://github.com/yojo-art/cherrypick/pull/973)
+- Fix: ノート上の絵文字クリック時に親要素までイベントが伝播する問題を修正 [#978](https://github.com/yojo-art/cherrypick/pull/978)
+- Fix: ヘッダーのタイトルと戻るボタンが重なる問題を修正 [#981](https://github.com/yojo-art/cherrypick/pull/981)
+- Fix: UIのぼかしオフ時に下方向にスクロールするとヘッダー背景が透明になる問題の修正 [#982](https://github.com/yojo-art/cherrypick/pull/982)
+- Fix: コントロールパネルのファイル表示が絵文字ラベルでずれる問題の修正 [#985](https://github.com/yojo-art/cherrypick/pull/985)
+- Feat: 画像のアップロード時の圧縮にWebP圧縮のみの追加 [#962](https://github.com/yojo-art/cherrypick/pull/962)
+
+### Server
+- Fix: UserGroup API のページネーション不備を修正 [#964](https://github.com/yojo-art/cherrypick/pull/964)
+
+## 1.7.2
+Cherrypick 4.17.0  
+Misskey 2025.10.2
+
+### Release Date
+2026-04-07
+
+### General
+
+### Client
+- Fix: 非ログイン状態でLTL/ユーザーTLが表示されない問題の修正 [#890](https://github.com/yojo-art/cherrypick/pull/890)
+- Fix: 自鯖に同名があるリモート絵文字をクリックした時にリアクションが表示に反映されないことがある問題の修正 [#892](https://github.com/yojo-art/cherrypick/pull/892)
+- Fix: リアクション確認ダイアログが正しく動作していないのを修正 [#895](https://github.com/yojo-art/cherrypick/pull/895)
+- Fix: リアクション変更時に古いリアクションが削除されないことがある問題の修正 [#898](https://github.com/yojo-art/cherrypick/pull/898)
+- Fix: お気に入りハッシュタグのボタンが機能しない問題の修正 [#919](https://github.com/yojo-art/cherrypick/pull/919)
+
+### Server
+- Enhance: botをハッシュタグトレンドから除外できるように [#865](https://github.com/yojo-art/cherrypick/pull/865)
+- Fix: データベースのマイグレーションに失敗する場合がある不具合の修正 [#885](https://github.com/yojo-art/cherrypick/pull/885)
+
+## 1.7.1
+Cherrypick 4.17.0  
+Misskey 2025.10.2
+
+### Release Date
+2026-03-14
+
+### General
+
+### Client
+
+### Server
+- Fix: セキュリティに関する修正 (Cherry-picked from misskey 2026.3.1)
+- Fix: requireSigninToViewContentsをfalseに上書きする [#860](https://github.com/yojo-art/cherrypick/pull/860)
+
+## 1.7.0
+Cherrypick 4.17.0  
+Misskey 2025.10.2
+
+### Release Date
+2026-03-04
+
+### General
+- Enhance: アンテナ受信時に新しい投稿として通知できるように [#827](https://github.com/yojo-art/cherrypick/pull/827)
+
+### Client
+
+### Server
+
+## 1.6.3
+Cherrypick 4.16.0  
+Misskey 2025.5.0
+
+### Release Date
+2025-12-24
+
+### General
+
+### Client
+- Fix: タイムラインのノート間区切りとアニメーションの問題を修正 [#816](https://github.com/yojo-art/cherrypick/pull/816)
+- Fix: 絵文字をリモートからインポート時、リモートの絵文字情報が更新されてしまうのを修正 [#818](https://github.com/yojo-art/cherrypick/pull/818)
+
+### Server
+
+## 1.6.2
+Cherrypick 4.16.0  
+Misskey 2025.5.0
+
+### Release Date
+2025-12-06
+
+### General
+
+### Client
+- Fix: リモートクリップ/play表示機能の修正 [#806](https://github.com/yojo-art/cherrypick/pull/806)
+- Enhance: 予約投稿ボタンの表記を変更 [#807](https://github.com/yojo-art/cherrypick/pull/807)
+- Fix: 高度な検索タブの内容が表示される条件を修正 [#808](https://github.com/yojo-art/cherrypick/pull/808)
+  - 高度な検索タブと通常検索タブが合体する不具合が修正されます
+- Fix: メディアタイムラインのグリッドレイアウト表示を修正 [#809](https://github.com/yojo-art/cherrypick/pull/809)
+
+### Server
+
+## 1.6.1
+Cherrypick 4.16.0  
+Misskey 2025.5.0
+
+### Release Date
+2025-12-01
+
+### General
+
+### Client
+
+### Server
+
+### Others
+- Fix: 公式Dockerイメージのビルドに失敗する問題を修正しました [#795](https://github.com/yojo-art/cherrypick/pull/795)
+
+## 1.6.0
+Cherrypick 4.16.0  
+Misskey 2025.5.0
+
+### Release Date
+2025-11-30
+
+### General
+
+### Client
+- Enhance: 投稿フォームにタグ非表示を切り替えるボタンを追加 [#792](https://github.com/yojo-art/cherrypick/pull/792)
+- Fix: 絵文字をリモートからインポート時、リモートの絵文字情報が更新されてしまうのを修正 [#778](https://github.com/yojo-art/cherrypick/pull/778)
+
+### Server
+- Fix: 制限されたインスタンスに宛先が複数ある投稿が配送されない不具合の修正 [#786](https://github.com/yojo-art/cherrypick/pull/786)
+  - 制限されたインスタンスにメンション付き投稿が配送されない不具合が修正されます
+- Fix: ULID使用時の通知取得で発生するパースエラーと Redis stream ID エラーを修正 [#790](https://github.com/yojo-art/cherrypick/pull/790)
+
+## 1.5.2
+Cherrypick 4.15.0  
+Misskey 2025.2.0
+
+### Release Date
+2025-10-13
+
+### General
+
+### Client
+
+### Server
+- Fix: 制限されたインスタンスに既読を配送しない [#757](https://github.com/yojo-art/cherrypick/pull/757)
+  - リモートユーザーとチャットできない不具合が修正されます
+
 ## 1.5.1
 Cherrypick 4.15.0  
 Misskey 2025.2.0

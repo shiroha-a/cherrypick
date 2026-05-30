@@ -323,7 +323,7 @@ export class ApPersonService implements OnModuleInit {
 		}
 
 		// eslint-disable-next-line no-param-reassign
-		if (resolver == null) resolver = this.apResolverService.createResolver();
+		if (resolver == null) resolver = await this.apResolverService.createResolver();
 
 		const object = await resolver.resolve(uri);
 		if (object.id == null) throw new Error('invalid object.id: ' + object.id);
@@ -482,6 +482,7 @@ export class ApPersonService implements OnModuleInit {
 					emojis,
 					setFederationAvatarShape: person.setFederationAvatarShape,
 					isSquareAvatars: person.isSquareAvatars,
+					canChat: (person as any)._misskey_canChat ?? true,
 					clipsUri: person._yojoart_clips ? getApId(person._yojoart_clips) : person.playlists ? getApId(person.playlists) : undefined,
 				})) as MiRemoteUser;
 
@@ -600,7 +601,7 @@ export class ApPersonService implements OnModuleInit {
 		//#endregion
 
 		// eslint-disable-next-line no-param-reassign
-		if (resolver == null) resolver = this.apResolverService.createResolver();
+		if (resolver == null) resolver = await this.apResolverService.createResolver();
 
 		const object = hint ?? await resolver.resolve(uri);
 
@@ -733,7 +734,7 @@ export class ApPersonService implements OnModuleInit {
 					isCollectionOrOrderedCollection(person.outbox)
 						? person.outbox.totalItems
 						: undefined,
-			featured: person.featured,
+			featured: person.featured ? getApId(person.featured) : undefined,
 			emojis: emojiNames,
 			name: truncate(person.name, nameLength),
 			tags,
@@ -745,6 +746,7 @@ export class ApPersonService implements OnModuleInit {
 			isExplorable: person.discoverable,
 			setFederationAvatarShape: person.setFederationAvatarShape,
 			isSquareAvatars: person.isSquareAvatars,
+			canChat: (person as any)._misskey_canChat ?? true,
 			clipsUri: person._yojoart_clips ?? person.playlists,
 			...(await this.resolveAvatarAndBanner(exist, person.icon, person.image, role_policy).catch(() => ({}))),
 		} as Partial<MiRemoteUser> & Pick<MiRemoteUser, 'isBot' | 'isCat' | 'isLocked' | 'movedToUri' | 'alsoKnownAs' | 'isExplorable'>;
@@ -772,7 +774,10 @@ export class ApPersonService implements OnModuleInit {
 		// Update user
 		const user = await this.usersRepository.findOneByOrFail({ id: exist.id });
 		await this.avatarDecorationService.remoteUserUpdate(user);
-		await this.usersRepository.update(exist.id, updates);
+
+		if (!(await this.usersRepository.update({ id: exist.id, isDeleted: false }, updates)).affected) {
+			return 'skip';
+		}
 
 		if (person.publicKey) {
 			await this.userPublickeysRepository.update({ userId: exist.id }, {
@@ -933,7 +938,7 @@ export class ApPersonService implements OnModuleInit {
 
 		// リモートサーバーからフェッチしてきて登録
 		// eslint-disable-next-line no-param-reassign
-		if (resolver == null) resolver = this.apResolverService.createResolver();
+		if (resolver == null) resolver = await this.apResolverService.createResolver();
 		return await this.createPerson(uri, resolver);
 	}
 
@@ -956,13 +961,13 @@ export class ApPersonService implements OnModuleInit {
 
 	@bindThis
 	public async updateFeatured(userId: MiUser['id'], resolver?: Resolver): Promise<void> {
-		const user = await this.usersRepository.findOneByOrFail({ id: userId });
+		const user = await this.usersRepository.findOneByOrFail({ id: userId, isDeleted: false });
 		if (!this.userEntityService.isRemoteUser(user)) return;
 		if (!user.featured) return;
 
 		this.logger.info(`Updating the featured: ${user.uri}`);
 
-		const _resolver = resolver ?? this.apResolverService.createResolver();
+		const _resolver = resolver ?? await this.apResolverService.createResolver();
 
 		// Resolve to (Ordered)Collection Object
 		const collection = await _resolver.resolveCollection(user.featured);
