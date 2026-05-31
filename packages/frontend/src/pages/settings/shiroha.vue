@@ -15,9 +15,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</MkSwitch>
 				</SearchMarker>
 
-				<SearchMarker :keywords="['post', 'form', 'classic', 'misskey']">
+				<SearchMarker :keywords="['post', 'form', 'classic', 'misskey', 'size']">
 					<MkSwitch v-model="useClassicPostForm">
-						<template #label><SearchLabel>投稿フォームをMisskey仕様にする</SearchLabel> <span class="_beta">Shiroha</span></template>
+						<template #label><SearchLabel>投稿フォームのサイズをMisskey仕様にする</SearchLabel> <span class="_beta">Shiroha</span></template>
+					</MkSwitch>
+				</SearchMarker>
+
+				<SearchMarker :keywords="['post', 'form', 'attach', 'file', 'upload', 'drive', 'menu']">
+					<MkSwitch v-model="useClassicFileAttachMenu">
+						<template #label><SearchLabel>ファイル添付ボタンをメニューにまとめる</SearchLabel> <span class="_beta">Shiroha</span></template>
 					</MkSwitch>
 				</SearchMarker>
 			</div>
@@ -37,6 +43,7 @@ import { suggestReload } from '@/utility/reload-suggest.js';
 
 const useSearchConversionSyntax = computed(store.makeGetterSetter('useSearchConversionSyntax'));
 const useClassicPostForm = computed(store.makeGetterSetter('useClassicPostForm'));
+const useClassicFileAttachMenu = computed(store.makeGetterSetter('useClassicFileAttachMenu'));
 
 // 投稿フォームの仕様変更は再読み込みが必要なためリロードを促す
 watch(useClassicPostForm, () => {
