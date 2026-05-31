@@ -92,7 +92,7 @@ const router = useRouter();
 
 const alternative: ComputedRef<string | null> = computed(() => prefer.s.reactableRemoteReactionEnabled ? (customEmojis.value.find(it => it.name === reactionName.value)?.name ?? null) : null);
 
-const canSteal = computed(() => props.note.user.host && $i && ($i.isAdmin || $i.policies.canManageCustomEmojis));
+const canSteal = computed(() => $i != null && ($i.isAdmin || $i.policies.canManageCustomEmojis));
 
 const longTouchEmoji = ref(false);
 
@@ -225,7 +225,7 @@ function stealReaction(ev: MouseEvent) {
 		});
 	}
 
-	if (canSteal.value && reactionHost.value !== '.') {
+	if (canSteal.value && reactionHost.value && reactionHost.value !== '.') {
 		menuItems.push({
 			text: i18n.ts.import,
 			icon: 'ti ti-plus',
@@ -321,7 +321,7 @@ async function menu(ev) {
 		});
 	}
 
-	if (canSteal.value && reactionHost.value !== '.') {
+	if (canSteal.value && reactionHost.value && reactionHost.value !== '.') {
 		menuItems.push({
 			text: i18n.ts.import,
 			icon: 'ti ti-plus',
