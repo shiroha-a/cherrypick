@@ -75,7 +75,7 @@ const canToggle = computed(() => {
 	//return !props.reaction.match(/@\w/) && $i && emoji && checkReactionPermissions($i, props.note, emoji);
 	return props.reaction.match(/@\w/) == null && $i != null && emoji != null;
 });
-const canGetInfo = computed(() => props.reaction.includes(':'));
+const canGetInfo = computed(() => props.reaction.startsWith(':'));
 const isLocalCustomEmoji = props.reaction[0] === ':' && props.reaction.includes('@.');
 
 const reactionName = computed(() => {
@@ -94,9 +94,9 @@ const alternative: ComputedRef<string | null> = computed(() => prefer.s.reactabl
 
 const canSteal = computed(() => $i != null && ($i.isAdmin || $i.policies.canManageCustomEmojis));
 
-const canImport = computed(() => canSteal.value && props.reaction.includes(':') && !!reactionHost.value && reactionHost.value !== '.' && !customEmojisMap.has(reactionName.value));
+const canImport = computed(() => canSteal.value && props.reaction.startsWith(':') && !!reactionHost.value && reactionHost.value !== '.' && !customEmojisMap.has(reactionName.value));
 
-const reactionLabel = computed(() => props.reaction.includes(':') ? `:${reactionName.value}:` : props.reaction);
+const reactionLabel = computed(() => props.reaction.startsWith(':') ? `:${reactionName.value}:` : props.reaction);
 
 const longTouchEmoji = ref(false);
 
