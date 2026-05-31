@@ -94,6 +94,10 @@ const alternative: ComputedRef<string | null> = computed(() => prefer.s.reactabl
 
 const canSteal = computed(() => $i != null && ($i.isAdmin || $i.policies.canManageCustomEmojis));
 
+const canImport = computed(() => canSteal.value && props.reaction.includes(':') && !!reactionHost.value && reactionHost.value !== '.' && !customEmojisMap.has(reactionName.value));
+
+const reactionLabel = computed(() => props.reaction.includes(':') ? `:${reactionName.value}:` : props.reaction);
+
 const longTouchEmoji = ref(false);
 
 async function toggleReaction(ev: MouseEvent) {
@@ -195,7 +199,7 @@ function stealReaction(ev: MouseEvent) {
 
 	menuItems.push({
 		type: 'label',
-		text: `:${reactionName.value}:`,
+		text: reactionLabel.value,
 	});
 
 	if (canGetInfo.value) {
@@ -225,7 +229,7 @@ function stealReaction(ev: MouseEvent) {
 		});
 	}
 
-	if (canSteal.value && reactionHost.value && reactionHost.value !== '.') {
+	if (canImport.value) {
 		menuItems.push({
 			text: i18n.ts.import,
 			icon: 'ti ti-plus',
@@ -291,7 +295,7 @@ async function menu(ev) {
 
 	menuItems.push({
 		type: 'label',
-		text: `:${reactionName.value}:`,
+		text: reactionLabel.value,
 	});
 
 	if (canGetInfo.value) {
@@ -321,7 +325,7 @@ async function menu(ev) {
 		});
 	}
 
-	if (canSteal.value && reactionHost.value && reactionHost.value !== '.') {
+	if (canImport.value) {
 		menuItems.push({
 			text: i18n.ts.import,
 			icon: 'ti ti-plus',
