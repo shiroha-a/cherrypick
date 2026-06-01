@@ -35,15 +35,21 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</SearchMarker>
 
 				<template v-if="coloredNoteByVisibility">
-					<MkColorInput v-model="visibilityColorHome">
-						<template #label>ホーム</template>
-					</MkColorInput>
-					<MkColorInput v-model="visibilityColorFollowers">
-						<template #label>フォロワー</template>
-					</MkColorInput>
-					<MkColorInput v-model="visibilityColorSpecified">
-						<template #label>ダイレクト</template>
-					</MkColorInput>
+					<div :class="$style.colorRow" :style="{ backgroundColor: `${visibilityColorHome}1a` }">
+						<MkColorInput v-model="visibilityColorHome">
+							<template #label>ホーム</template>
+						</MkColorInput>
+					</div>
+					<div :class="$style.colorRow" :style="{ backgroundColor: `${visibilityColorFollowers}1a` }">
+						<MkColorInput v-model="visibilityColorFollowers">
+							<template #label>フォロワー</template>
+						</MkColorInput>
+					</div>
+					<div :class="$style.colorRow" :style="{ backgroundColor: `${visibilityColorSpecified}1a` }">
+						<MkColorInput v-model="visibilityColorSpecified">
+							<template #label>ダイレクト</template>
+						</MkColorInput>
+					</div>
 				</template>
 			</div>
 		</FormSection>
@@ -88,3 +94,12 @@ definePage(() => ({
 	icon: 'ti ti-settings',
 }));
 </script>
+
+<style lang="scss" module>
+.colorRow {
+	padding: 12px;
+	border-radius: var(--MI-radius);
+	// 実際にノートへ適用される透明度(約10%)の見え方をプレビューする
+	transition: background-color 0.2s;
+}
+</style>
