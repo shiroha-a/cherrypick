@@ -871,6 +871,22 @@ export const store = markRaw(new Pizzax('base', {
 		where: 'device',
 		default: false,
 	},
+	coloredNoteByVisibility: {
+		where: 'device',
+		default: false,
+	},
+	visibilityColorHome: {
+		where: 'device',
+		default: '#00ffff',
+	},
+	visibilityColorFollowers: {
+		where: 'device',
+		default: '#ff00ff',
+	},
+	visibilityColorSpecified: {
+		where: 'device',
+		default: '#ffff64', // rgb(255, 255, 100)
+	},
 	// #endregion
 }));
 

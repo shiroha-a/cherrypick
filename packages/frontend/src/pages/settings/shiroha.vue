@@ -26,6 +26,31 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<template #label><SearchLabel>ファイル添付ボタンをメニューにまとめる</SearchLabel> <span class="_beta">Shiroha</span></template>
 					</MkSwitch>
 				</SearchMarker>
+
+				<SearchMarker :keywords="['note', 'visibility', 'color', 'background']">
+					<MkSwitch v-model="coloredNoteByVisibility">
+						<template #label><SearchLabel>公開範囲に応じてノートの背景を色付け</SearchLabel> <span class="_beta">Shiroha</span></template>
+						<template #caption><SearchText>ホーム・フォロワー・ダイレクトの投稿を、設定した色で薄く着色します。</SearchText></template>
+					</MkSwitch>
+				</SearchMarker>
+
+				<template v-if="coloredNoteByVisibility">
+					<div :class="$style.colorRow" :style="{ backgroundColor: `${visibilityColorHome}1a` }">
+						<MkColorInput v-model="visibilityColorHome">
+							<template #label>ホーム</template>
+						</MkColorInput>
+					</div>
+					<div :class="$style.colorRow" :style="{ backgroundColor: `${visibilityColorFollowers}1a` }">
+						<MkColorInput v-model="visibilityColorFollowers">
+							<template #label>フォロワー</template>
+						</MkColorInput>
+					</div>
+					<div :class="$style.colorRow" :style="{ backgroundColor: `${visibilityColorSpecified}1a` }">
+						<MkColorInput v-model="visibilityColorSpecified">
+							<template #label>ダイレクト</template>
+						</MkColorInput>
+					</div>
+				</template>
 			</div>
 		</FormSection>
 	</div>
@@ -35,6 +60,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script lang="ts" setup>
 import { computed, watch } from 'vue';
 import MkSwitch from '@/components/MkSwitch.vue';
+import MkColorInput from '@/components/MkColorInput.vue';
 import FormSection from '@/components/form/section.vue';
 import { store } from '@/store.js';
 import { globalEvents } from '@/events.js';
@@ -44,6 +70,10 @@ import { suggestReload } from '@/utility/reload-suggest.js';
 const useSearchConversionSyntax = computed(store.makeGetterSetter('useSearchConversionSyntax'));
 const useClassicPostForm = computed(store.makeGetterSetter('useClassicPostForm'));
 const useClassicFileAttachMenu = computed(store.makeGetterSetter('useClassicFileAttachMenu'));
+const coloredNoteByVisibility = computed(store.makeGetterSetter('coloredNoteByVisibility'));
+const visibilityColorHome = computed(store.makeGetterSetter('visibilityColorHome'));
+const visibilityColorFollowers = computed(store.makeGetterSetter('visibilityColorFollowers'));
+const visibilityColorSpecified = computed(store.makeGetterSetter('visibilityColorSpecified'));
 
 // 投稿フォームの仕様変更は再読み込みが必要なためリロードを促す
 watch(useClassicPostForm, () => {
@@ -64,3 +94,12 @@ definePage(() => ({
 	icon: 'ti ti-settings',
 }));
 </script>
+
+<style lang="scss" module>
+.colorRow {
+	padding: 12px;
+	border-radius: var(--MI-radius);
+	// 実際にノートへ適用される透明度(約10%)の見え方をプレビューする
+	transition: background-color 0.2s;
+}
+</style>

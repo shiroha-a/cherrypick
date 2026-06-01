@@ -9,6 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	ref="rootEl"
 	v-hotkey="keymap"
 	:class="[$style.root, { [$style.showActionsOnlyHover]: prefer.s.showNoteActionsOnlyHover, [$style.skipRender]: prefer.s.skipNoteRender }]"
+	:style="visibilityBgStyle"
 	tabindex="0"
 >
 	<div v-if="pinned" :class="$style.tip"><i class="ti ti-pin"></i> {{ i18n.ts.pinnedNote }}</div>
@@ -504,6 +505,20 @@ const { $note: $appearNote, subscribe: subscribeManuallyToNoteCapture } = useNot
 	note: appearNote,
 	parentNote: note,
 	mock: props.mock,
+});
+
+// 公開範囲に応じてノートカードの背景を着色する。色相はユーザー設定のhexを用い、
+// 透明度は約10%(hex末尾の1a)固定で重ねることで旧カスタムCSSのrgba(...,0.10)を再現する。
+// publicは対象外(対応キーなし)
+const visibilityColorKeys: Partial<Record<typeof appearNote.visibility, 'visibilityColorHome' | 'visibilityColorFollowers' | 'visibilityColorSpecified'>> = {
+	home: 'visibilityColorHome',
+	followers: 'visibilityColorFollowers',
+	specified: 'visibilityColorSpecified',
+};
+const visibilityBgStyle = computed(() => {
+	if (!store.s.coloredNoteByVisibility) return {};
+	const key = visibilityColorKeys[appearNote.visibility];
+	return key ? { backgroundColor: `${store.s[key]}1a` } : {};
 });
 
 const enableAnimatedMfm = $i ? true : computed(store.makeGetterSetter('animatedMfm'));
