@@ -508,16 +508,17 @@ const { $note: $appearNote, subscribe: subscribeManuallyToNoteCapture } = useNot
 });
 
 // 公開範囲に応じてノートカードの背景を着色する。色相はユーザー設定のhexを用い、
-// 透明度は約10%(hex末尾の1a)固定で重ねることで旧カスタムCSSのrgba(...,0.10)を再現する
+// 透明度は約10%(hex末尾の1a)固定で重ねることで旧カスタムCSSのrgba(...,0.10)を再現する。
+// publicは対象外(対応キーなし)
+const visibilityColorKeys: Partial<Record<typeof appearNote.visibility, 'visibilityColorHome' | 'visibilityColorFollowers' | 'visibilityColorSpecified'>> = {
+	home: 'visibilityColorHome',
+	followers: 'visibilityColorFollowers',
+	specified: 'visibilityColorSpecified',
+};
 const visibilityBgStyle = computed(() => {
 	if (!store.s.coloredNoteByVisibility) return {};
-	const colorMap: Partial<Record<typeof appearNote.visibility, string>> = {
-		home: store.s.visibilityColorHome,
-		followers: store.s.visibilityColorFollowers,
-		specified: store.s.visibilityColorSpecified,
-	};
-	const hex = colorMap[appearNote.visibility];
-	return hex ? { backgroundColor: `${hex}1a` } : {};
+	const key = visibilityColorKeys[appearNote.visibility];
+	return key ? { backgroundColor: `${store.s[key]}1a` } : {};
 });
 
 const enableAnimatedMfm = $i ? true : computed(store.makeGetterSetter('animatedMfm'));
