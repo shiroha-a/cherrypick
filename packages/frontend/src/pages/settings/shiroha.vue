@@ -21,12 +21,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</MkSwitch>
 				</SearchMarker>
 
-				<SearchMarker :keywords="['post', 'form', 'attach', 'file', 'upload', 'drive', 'menu']">
-					<MkSwitch v-model="useClassicFileAttachMenu">
-						<template #label><SearchLabel>ファイル添付ボタンをメニューにまとめる</SearchLabel> <span class="_beta">Shiroha</span></template>
-					</MkSwitch>
-				</SearchMarker>
-
 				<SearchMarker :keywords="['note', 'visibility', 'color', 'background']">
 					<MkSwitch v-model="coloredNoteByVisibility">
 						<template #label><SearchLabel>公開範囲に応じてノートの背景を色付け</SearchLabel> <span class="_beta">Shiroha</span></template>
@@ -69,7 +63,6 @@ import { suggestReload } from '@/utility/reload-suggest.js';
 
 const useSearchConversionSyntax = computed(store.makeGetterSetter('useSearchConversionSyntax'));
 const useClassicPostForm = computed(store.makeGetterSetter('useClassicPostForm'));
-const useClassicFileAttachMenu = computed(store.makeGetterSetter('useClassicFileAttachMenu'));
 const coloredNoteByVisibility = computed(store.makeGetterSetter('coloredNoteByVisibility'));
 const visibilityColorHome = computed(store.makeGetterSetter('visibilityColorHome'));
 const visibilityColorFollowers = computed(store.makeGetterSetter('visibilityColorFollowers'));
